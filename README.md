@@ -16,53 +16,54 @@ A standards-compliant g-code controller that will look up to 16 motions into the
 ***
 
 ## Update Summary for grblDD 0v1
-Items listed below are changes to standard grbl 1v1h
+Items listed below are changes to standard grbl 1v1h:
 
-- **IMPORTANT:** After updating firmware, You must update EEPROM using "$RST=*".
---  For our prototyping needs, we can just manually send that command.
---  For release, DDcut should probably just always send that command after updating grbl firmware (if we don't do that already).
+- **IMPORTANT:** After updating firmware, You must update EEPROM using "$RST=*".  
+--  For our prototyping needs, we can just manually send that command.  
+--  For release, DDcut should probably just always send that command after updating grbl firmware (if we don't do that already).  
 
--When a user updates the firmware on a GG1/GG2 machine, the user will need to tell DDcut which machine they have (GG1 w/ GG1 spindle), (GG1 w/ GG2 spindle), (GG2)(e.g. via a pop-up window).
---DDcut will then need to select the correct firmware version to install.
+-When a user updates the firmware on a GG1/GG2 machine, the user will need to tell DDcut which machine they have (GG1 w/ GG1 spindle), (GG1 w/ GG2 spindle), (GG2)(e.g. via a pop-up window).  DDcut will then need to select the correct firmware version to install.  
 
--$HX, $HY, or $HZ homes single axis ($H still homes all axes).  This should make testing limit switch tab placement easier.
+-$HX, $HY, or $HZ homes single axis ($H still homes all axes).  This should make testing limit switch tab placement easier.  
 
--Probing should work better than you've ever seen it work.  Of course, y'all can't test it until I send 64M1 firmware (spindle).
+-Probing should work better than you've ever seen it work.  Of course, y'all can't test it until I send 64M1 firmware (spindle).  
 
--Steppers now automatically configure power levels.  You'll notice steppers run much cooler.
+-Steppers now automatically configure power levels.  You'll notice steppers run much cooler.  
 
--'M17' command: places steppers into high power mode (ONLY during the next motion command).  USE SPARINGLY... PCB overheat in ~5 seconds.  Intended use: freeing bound X axis.
-Note: This replaces '$K' functionality I previously described.
+-'M17' command: places steppers into high power mode (ONLY during the next motion command).  Primarily designed to free stuck axes (particularly X).    
+USE SPARINGLY... PCB overheats (and safely shuts down) in ~5 seconds.  Intended use: freeing bound X axis.  
+Note: This replaces '$K' functionality I previously described.  
 
--'M18' command: turn steppers off (until next motion command).  Allows you to hand turn motors without unplugging GG.  Useful for assembly/troubleshooting.
-Note: This replaces '$O' functionality I previously described.
+-'M18' command: turn steppers off (until next motion command).  Allows you to hand turn motors without unplugging GG.  Useful for assembly/troubleshooting.  
+Note: This replaces '$O' functionality previously described.
 
--When GG hits a hard limit switch, the "ALARM:1" response is now followed by the tripped axis (i.e. "ALARM:1X", "ALARM:1Y", or "ALARM:1Z").
-This should make it easier for our customers to figure out which limit switch has tripped.
+-When GG hits a hard limit switch, the "ALARM:1" response is now followed by the tripped axis (i.e. "ALARM:1X", "ALARM:1Y", or "ALARM:1Z").  
+This should make it easier for our customers to figure out which limit switch has tripped.  
 
--Simplified realtime reporting (i.e. data returned by '?' command)
-grbl1v1 made it difficult to automatically parse data.  I fixed the following issues:
---every single '?' is now always formatted exactly the same way.  Previously, certain commands were only returned every 10 or 20 requests.
---feedrate and spindle rpm are no longer returned here (they're already available via '$G' parser state).
---When a limit switch or probe isn't tripped, the corresponding digit is now filled with '0'.  Previously, non-tripped parameters were not sent at all.
-Returned data from '?' is formatted as follows:
-<machine state | absolute WCS (X,Y,Z) | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | PXYZ (letter appears only if tripped)>
-Examples:
-<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | 0000> (idle | WCS | Buffers completely empty | nothing is tripped (probe/X/Y/Z all equal 0)
-<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | P000> (same as above, except probe is tripped)
-<Hold:0 | M:-91.500,-20.000,-0.500 | Bf:15,1 | P000> (same as above, except machine is in feedhold & RX buffer is full)
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0X00> (machine hasn't been homed, X limit switch is tripped**)
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 00Y0> (machine hasn't been homed, Y limit switch is tripped**)
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 000Z> (machine hasn't been homed, Z limit switch is tripped**)
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0XY0> (machine hasn't been homed, X & Y limit switches are tripped**)
-**Note: you cannot query '?' after a hard limit occurs.  Thus, you can only see which limit switch is tripped prior to initial homing sequence.
+-Simplified realtime reporting (i.e. data returned by '?' command).  grbl1v1 made it difficult to automatically parse data.  
+The following improvements were made:  
+--every single '?' is now always formatted exactly the same way.  Previously, certain commands were only returned every 10 or 20 requests.  
+--feedrate and spindle rpm are no longer returned here (they're already available via '$G' parser state).  
+--When a limit switch or probe isn't tripped, the corresponding digit is now filled with '0'.  Previously, non-tripped parameters were not sent at all.  
+Returned data from '?' is formatted as follows:  
+<machine state | absolute WCS (X,Y,Z) | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | PXYZ (letter appears only if tripped)>  
+Examples:  
+<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | 0000> (idle | WCS | Buffers completely empty | nothing is tripped (probe/X/Y/Z all equal 0)  
+<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | P000> (same as above, except probe is tripped)  
+<Hold:0 | M:-91.500,-20.000,-0.500 | Bf:15,1 | P000> (same as above, except machine is in feedhold & RX buffer is full)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0X00> (machine hasn't been homed, X limit switch is tripped**)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 00Y0> (machine hasn't been homed, Y limit switch is tripped**)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 000Z> (machine hasn't been homed, Z limit switch is tripped**)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0XY0> (machine hasn't been homed, X & Y limit switches are tripped**)  
+**Note: you cannot query '?' after a hard limit occurs.  Thus, you can only see which limit switch is tripped prior to initial homing sequence.  
 
-$I returns GG hardware/firmware versions (e.g. "[grbl:1.1h GG:3A PCB:3B VFD:3A YMD:20200101]"), where:
-  -"GG:3A" is a GG3 mechanical assembly, with revision A hardware.  This number should always be the actual machine hardware (i.e. a GG1 unit will always return itself as GG:1_)
-  -"PCB:3B" is a GG1/2/3 machine with a GG3 PCB inside (revision B).
-  -"VFD:3A" is a GG1/2/3 machine with VFD firmware 3A... note machines that don't have VFD hardware will return "VFD:00". 
-  -"YMD20200101" is the build year/month/date (YYYYMMDD).
-  -Keep in mind that all existing GG1/GG2 machines will return the old $I data until their firmware gets upgraded.
+$I returns GG hardware/firmware versions (e.g. "[grbl:1.1h GG:3A PCB:3B VFD:3A YMD:20200101]"), where:  
+  -"GG:3A" is a GG3 mechanical assembly, with revision A hardware.  
+  This number should always be the actual machine hardware (i.e. a GG1 unit will always return itself as GG:1_)  
+  -"PCB:3B" is a GG1/2/3 machine with a GG3 PCB inside (revision B).  
+  -"VFD:3A" is a GG1/2/3 machine with VFD firmware 3A... note machines that don't have VFD hardware will return "VFD:00".  
+  -"YMD20200101" is the build year/month/date (YYYYMMDD).  
+  -Keep in mind that all existing GG1/GG2 machines will return the old $I data until their firmware gets upgraded.  
 
 ```
 List of Supported G-Codes:
