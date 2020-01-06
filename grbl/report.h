@@ -34,7 +34,7 @@
 #define STATUS_SOFT_LIMIT_ERROR 10
 #define STATUS_OVERFLOW 11
 #define STATUS_MAX_STEP_RATE_EXCEEDED 12
-#define STATUS_CHECK_DOOR 13
+//#define STATUS_ 13 //JTS 2do repurpose this for STATUS_SPINDLE_OVERLOAD
 #define STATUS_LINE_LENGTH_EXCEEDED 14
 #define STATUS_TRAVEL_EXCEEDED 15
 #define STATUS_INVALID_JOG_COMMAND 16
@@ -67,7 +67,6 @@
 #define ALARM_PROBE_FAIL_INITIAL    EXEC_ALARM_PROBE_FAIL_INITIAL
 #define ALARM_PROBE_FAIL_CONTACT    EXEC_ALARM_PROBE_FAIL_CONTACT
 #define ALARM_HOMING_FAIL_RESET     EXEC_ALARM_HOMING_FAIL_RESET
-#define ALARM_HOMING_FAIL_DOOR      EXEC_ALARM_HOMING_FAIL_DOOR
 #define ALARM_HOMING_FAIL_PULLOFF   EXEC_ALARM_HOMING_FAIL_PULLOFF
 #define ALARM_HOMING_FAIL_APPROACH  EXEC_ALARM_HOMING_FAIL_APPROACH
 
@@ -77,8 +76,7 @@
 #define MESSAGE_ALARM_UNLOCK 3
 #define MESSAGE_ENABLED 4
 #define MESSAGE_DISABLED 5
-#define MESSAGE_SAFETY_DOOR_AJAR 6
-#define MESSAGE_CHECK_LIMITS 7
+//#define MESSAGE_ 6 //JTS repurpose this for STATUS_SPINDLE_OVERLOAD
 #define MESSAGE_PROGRAM_END 8
 #define MESSAGE_RESTORE_DEFAULTS 9
 #define MESSAGE_SPINDLE_RESTORE 10
@@ -105,7 +103,7 @@ void report_grbl_settings();
 // Prints an echo of the pre-parsed line received right before execution.
 void report_echo_line_received(char *line);
 
-// Prints realtime status report
+// Prints realtime status report.  This is the data returned when user types '?'
 void report_realtime_status();
 
 // Prints recorded probe position
@@ -123,9 +121,5 @@ void report_execute_startup_message(char *line, uint8_t status_code);
 
 // Prints build info and user info
 void report_build_info(char *line);
-
-#ifdef DEBUG
-  void report_realtime_debug();
-#endif
 
 #endif

@@ -22,15 +22,17 @@
 #ifndef protocol_h
 #define protocol_h
 
-// Line buffer size from the serial input stream to be executed.
-// NOTE: Not a problem except for extreme cases, but the line buffer size can be too small
-// and g-code blocks can get truncated. Officially, the g-code standards support up to 256
-// characters. In future versions, this will be increased, when we know how much extra
-// memory space we can invest into here or we re-write the g-code parser not to have this
-// buffer.
-#ifndef LINE_BUFFER_SIZE
-  #define LINE_BUFFER_SIZE 80
-#endif
+// Line buffer size from the serial input stream to be executed. Also, governs the size of
+// each of the startup blocks, as they are each stored as a string of this size. Make sure
+// to account for the available EEPROM at the defined memory address in settings.h and for
+// the number of desired startup blocks.
+// NOTE: 80 characters is not a problem except for extreme cases, but the line buffer size
+// can be too small and g-code blocks can get truncated. Officially, the g-code standards
+// support up to 256 characters. In future versions, this default will be increased, when
+// we know how much extra memory space we can re-invest into this, or we re-write the g-code 
+// parser not to have this buffer.
+#define LINE_BUFFER_SIZE 80
+
 
 // Starts Grbl main loop. It handles all incoming characters from the serial port and executes
 // them as they complete. It is also responsible for finishing the initialization procedures.

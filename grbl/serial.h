@@ -23,16 +23,25 @@
 #define serial_h
 
 
-#ifndef RX_BUFFER_SIZE
-  #define RX_BUFFER_SIZE 128
+// Serial send and receive buffer size. The receive buffer is often used as another streaming
+// buffer to store incoming blocks to be processed by Grbl when its ready. Most streaming
+// interfaces will character count and track each block send to each block response. So,
+// increase the receive buffer if a deeper receive buffer is needed for streaming and avaiable
+// memory allows. 
+#define RX_BUFFER_SIZE 128 // (1-254)
+
+//The send buffer primarily handles messages in Grbl. Only increase if large
+// messages are sent and Grbl begins to stall, waiting to send the rest of the message.
+// NOTE: Grbl generates an average status report in about 0.5msec, but the serial TX stream at
+// 115200 baud will take 5 msec to transmit a typical 55 character report. Worst case reports are
+// around 90-100 characters. As long as the serial TX buffer doesn't get continually maxed, Grbl
+// will continue operating efficiently. Size the TX buffer around the size of a worst-case report.
+#ifdef USE_LINE_NUMBERS
+  #define TX_BUFFER_SIZE 112 // (1-254)
+#else
+  #define TX_BUFFER_SIZE 104
 #endif
-#ifndef TX_BUFFER_SIZE
-  #ifdef USE_LINE_NUMBERS
-    #define TX_BUFFER_SIZE 112
-  #else
-    #define TX_BUFFER_SIZE 104
-  #endif
-#endif
+
 
 #define SERIAL_NO_DATA 0xff
 

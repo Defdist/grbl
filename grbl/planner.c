@@ -255,7 +255,7 @@ uint8_t plan_check_full_buffer()
 
 
 // Computes and returns block nominal speed based on running condition and override values.
-// NOTE: All system motion commands, such as homing/parking, are not subject to overrides.
+// NOTE: All system motion commands (e.g. homing) are not subject to overrides.
 float plan_compute_profile_nominal_speed(plan_block_t *block)
 {
   float nominal_speed = block->programmed_rate;
@@ -318,9 +318,9 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
   plan_block_t *block = &block_buffer[block_buffer_head];
   memset(block,0,sizeof(plan_block_t)); // Zero all block values.
   block->condition = pl_data->condition;
-  #ifdef VARIABLE_SPINDLE
-    block->spindle_speed = pl_data->spindle_speed;
-  #endif
+
+  block->spindle_speed = pl_data->spindle_speed;
+
   #ifdef USE_LINE_NUMBERS
     block->line_number = pl_data->line_number;
   #endif
@@ -332,45 +332,18 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
 
   // Copy position data based on type of motion being planned.
   if (block->condition & PL_COND_FLAG_SYSTEM_MOTION) { 
-    #ifdef COREXY
-      position_steps[X_AXIS] = system_convert_corexy_to_x_axis_steps(sys_position);
-      position_steps[Y_AXIS] = system_convert_corexy_to_y_axis_steps(sys_position);
-      position_steps[Z_AXIS] = sys_position[Z_AXIS];
-    #else
-      memcpy(position_steps, sys_position, sizeof(sys_position)); 
-    #endif
+    memcpy(position_steps, sys_position, sizeof(sys_position)); 
   } else { memcpy(position_steps, pl.position, sizeof(pl.position)); }
-
-  #ifdef COREXY
-    target_steps[A_MOTOR] = lround(target[A_MOTOR]*settings.steps_per_mm[A_MOTOR]);
-    target_steps[B_MOTOR] = lround(target[B_MOTOR]*settings.steps_per_mm[B_MOTOR]);
-    block->steps[A_MOTOR] = labs((target_steps[X_AXIS]-position_steps[X_AXIS]) + (target_steps[Y_AXIS]-position_steps[Y_AXIS]));
-    block->steps[B_MOTOR] = labs((target_steps[X_AXIS]-position_steps[X_AXIS]) - (target_steps[Y_AXIS]-position_steps[Y_AXIS]));
-  #endif
 
   for (idx=0; idx<N_AXIS; idx++) {
     // Calculate target position in absolute steps, number of steps for each axis, and determine max step events.
     // Also, compute individual axes distance for move and prep unit vector calculations.
     // NOTE: Computes true distance from converted step values.
-    #ifdef COREXY
-      if ( !(idx == A_MOTOR) && !(idx == B_MOTOR) ) {
-        target_steps[idx] = lround(target[idx]*settings.steps_per_mm[idx]);
-        block->steps[idx] = labs(target_steps[idx]-position_steps[idx]);
-      }
-      block->step_event_count = max(block->step_event_count, block->steps[idx]);
-      if (idx == A_MOTOR) {
-        delta_mm = (target_steps[X_AXIS]-position_steps[X_AXIS] + target_steps[Y_AXIS]-position_steps[Y_AXIS])/settings.steps_per_mm[idx];
-      } else if (idx == B_MOTOR) {
-        delta_mm = (target_steps[X_AXIS]-position_steps[X_AXIS] - target_steps[Y_AXIS]+position_steps[Y_AXIS])/settings.steps_per_mm[idx];
-      } else {
-        delta_mm = (target_steps[idx] - position_steps[idx])/settings.steps_per_mm[idx];
-      }
-    #else
-      target_steps[idx] = lround(target[idx]*settings.steps_per_mm[idx]);
-      block->steps[idx] = labs(target_steps[idx]-position_steps[idx]);
-      block->step_event_count = max(block->step_event_count, block->steps[idx]);
-      delta_mm = (target_steps[idx] - position_steps[idx])/settings.steps_per_mm[idx];
-	  #endif
+    target_steps[idx] = lround(target[idx]*settings.steps_per_mm[idx]);
+    block->steps[idx] = labs(target_steps[idx]-position_steps[idx]);
+    block->step_event_count = max(block->step_event_count, block->steps[idx]);
+    delta_mm = (target_steps[idx] - position_steps[idx])/settings.steps_per_mm[idx];
+
     unit_vec[idx] = delta_mm; // Store unit vector numerator
 
     // Set direction bits. Bit enabled always means direction is negative.
@@ -479,17 +452,7 @@ void plan_sync_position()
   // this function needs to be updated to accomodate the difference.
   uint8_t idx;
   for (idx=0; idx<N_AXIS; idx++) {
-    #ifdef COREXY
-      if (idx==X_AXIS) {
-        pl.position[X_AXIS] = system_convert_corexy_to_x_axis_steps(sys_position);
-      } else if (idx==Y_AXIS) {
-        pl.position[Y_AXIS] = system_convert_corexy_to_y_axis_steps(sys_position);
-      } else {
-        pl.position[idx] = sys_position[idx];
-      }
-    #else
-      pl.position[idx] = sys_position[idx];
-    #endif
+    pl.position[idx] = sys_position[idx];
   }
 }
 

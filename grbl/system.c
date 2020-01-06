@@ -23,76 +23,29 @@
 
 void system_init()
 {
-  CONTROL_DDR &= ~(CONTROL_MASK); // Configure as input pins
-  #ifdef DISABLE_CONTROL_PIN_PULL_UP
-    CONTROL_PORT &= ~(CONTROL_MASK); // Normal low operation. Requires external pull-down.
-  #else
-    CONTROL_PORT |= CONTROL_MASK;   // Enable internal pull-up resistors. Normal high operation.
-  #endif
-  CONTROL_PCMSK |= CONTROL_MASK;  // Enable specific pins of the Pin Change Interrupt
-  PCICR |= (1 << CONTROL_INT);   // Enable Pin Change Interrupt
+  DDRC &= ~(CONTROL_MASK); // Configure as input pins
+  PCMSK1 |= CONTROL_MASK;  // Enable specific pins of the Pin Change Interrupt
+  PCICR |= (1 << PCIE1);   // Enable Pin Change Interrupt
 }
 
-
-// Returns control pin state as a uint8 bitfield. Each bit indicates the input pin state, where
-// triggered is 1 and not triggered is 0. Invert mask is applied. Bitfield organization is
-// defined by the CONTROL_PIN_INDEX in the header file.
-uint8_t system_control_get_state()
-{
-  uint8_t control_state = 0;
-  uint8_t pin = (CONTROL_PIN & CONTROL_MASK) ^ CONTROL_MASK;
-  #ifdef INVERT_CONTROL_PIN_MASK
-    pin ^= INVERT_CONTROL_PIN_MASK;
-  #endif
-  if (pin) {
-    #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
-      if (bit_istrue(pin,(1<<CONTROL_SAFETY_DOOR_BIT))) { control_state |= CONTROL_PIN_INDEX_SAFETY_DOOR; }
-    #else
-      if (bit_istrue(pin,(1<<CONTROL_FEED_HOLD_BIT))) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
-    #endif
-    if (bit_istrue(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
-    if (bit_istrue(pin,(1<<CONTROL_CYCLE_START_BIT))) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
-  }
-  return(control_state);
-}
-
-
-// Pin change interrupt for pin-out commands, i.e. cycle start, feed hold, and reset. Sets
-// only the realtime command execute variable to have the main program execute these when
+//JTS Pin change interrupt for probe and spindle overlaod
+// ISR needs to be as fast as possible.
+// Sets only the realtime command execute variable; the main program executes these when
 // its ready. This works exactly like the character-based realtime commands when picked off
 // directly from the incoming serial data stream.
-ISR(CONTROL_INT_vect)
+ISR(PCINT1_vect)
 {
-  uint8_t pin = system_control_get_state();
-  if (pin) {
-    if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET)) {
-      mc_reset();
-    }
-    if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START)) {
-      bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
-    }
-    #ifndef ENABLE_SAFETY_DOOR_INPUT_PIN
-      if (bit_istrue(pin,CONTROL_PIN_INDEX_FEED_HOLD)) {
-        bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-    #else
-      if (bit_istrue(pin,CONTROL_PIN_INDEX_SAFETY_DOOR)) {
-        bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
-    #endif
-    }
+  if(CONTROL_PIN & (1<<CONTROL_SPINDLE_OVERLOAD_BIT)) //true if spindle overload pin (A4) toggled to high
+  {
+    //bit_true(sys_rt_exec_state, EXEC_CYCLE_START);} //JTS 2do: add "SLOW DOWN SPINDLE OVERLOADED"
+  }
+  else //true if spindle overload pin (A4) toggled to low
+  {     //also true if probe tripped.  Probe signal is noisy, so reading it (again) here is unreliable.
+    //JTS 2do add "SPINDLE NO LONGER OVERLOADED"   
+    PCMSK1 = CONTROL_MASK; //JTS disable probe interrupt vector (to prevent probe interrupts when not probing).
+    sys.probe_interrupt_occurred = 1; //JTS log that probe occurred
   }
 }
-
-
-// Returns if safety door is ajar(T) or closed(F), based on pin state.
-uint8_t system_check_safety_door_ajar()
-{
-  #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
-    return(system_control_get_state() & CONTROL_PIN_INDEX_SAFETY_DOOR);
-  #else
-    return(false); // Input pin not enabled, so just return that it's closed.
-  #endif
-}
-
 
 // Executes user startup script, if stored.
 void system_execute_startup(char *line)
@@ -136,7 +89,7 @@ uint8_t system_execute_line(char *line)
     case '$': case 'G': case 'C': case 'X':
       if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
       switch( line[1] ) {
-        case '$' : // Prints Grbl settings
+        case '$' : // $$, Prints Grbl settings
           if ( sys.state & (STATE_CYCLE | STATE_HOLD) ) { return(STATUS_IDLE_ERROR); } // Block during cycle. Takes too long to print.
           else { report_grbl_settings(); }
           break;
@@ -159,8 +112,6 @@ uint8_t system_execute_line(char *line)
           break;
         case 'X' : // Disable alarm lock [ALARM]
           if (sys.state == STATE_ALARM) {
-            // Block if safety door is ajar.
-            if (system_check_safety_door_ajar()) { return(STATUS_CHECK_DOOR); }
             report_feedback_message(MESSAGE_ALARM_UNLOCK);
             sys.state = STATE_IDLE;
             // Don't run startup script. Prevents stored moves in startup from causing accidents.
@@ -178,7 +129,6 @@ uint8_t system_execute_line(char *line)
           break;
         case 'H' : // Perform homing cycle [IDLE/ALARM]
           if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return(STATUS_SETTING_DISABLED); }
-          if (system_check_safety_door_ajar()) { return(STATUS_CHECK_DOOR); } // Block if safety door is ajar.
           sys.state = STATE_HOMING; // Set system state variable
           if (line[2] == 0) {
             mc_homing_cycle(HOMING_CYCLE_ALL);
@@ -194,7 +144,7 @@ uint8_t system_execute_line(char *line)
           } else { return(STATUS_INVALID_STATEMENT); }
           if (!sys.abort) {  // Execute startup scripts after successful homing.
             sys.state = STATE_IDLE; // Set to IDLE when complete.
-            st_go_idle(); // Set steppers to the settings idle state before returning.
+            st_go_idle(); // Set steppers to the idle state before returning.
             if (line[2] == 0) { system_execute_startup(line); }
           }
           break;
@@ -292,17 +242,7 @@ void system_flag_wco_change()
 float system_convert_axis_steps_to_mpos(int32_t *steps, uint8_t idx)
 {
   float pos;
-  #ifdef COREXY
-    if (idx==X_AXIS) {
-      pos = (float)system_convert_corexy_to_x_axis_steps(steps) / settings.steps_per_mm[idx];
-    } else if (idx==Y_AXIS) {
-      pos = (float)system_convert_corexy_to_y_axis_steps(steps) / settings.steps_per_mm[idx];
-    } else {
-      pos = steps[idx]/settings.steps_per_mm[idx];
-    }
-  #else
-    pos = steps[idx]/settings.steps_per_mm[idx];
-  #endif
+  pos = steps[idx]/settings.steps_per_mm[idx];
   return(pos);
 }
 
@@ -316,37 +256,13 @@ void system_convert_array_steps_to_mpos(float *position, int32_t *steps)
   return;
 }
 
-
-// CoreXY calculation only. Returns x or y-axis "steps" based on CoreXY motor steps.
-#ifdef COREXY
-  int32_t system_convert_corexy_to_x_axis_steps(int32_t *steps)
-  {
-    return( (steps[A_MOTOR] + steps[B_MOTOR])/2 );
-  }
-  int32_t system_convert_corexy_to_y_axis_steps(int32_t *steps)
-  {
-    return( (steps[A_MOTOR] - steps[B_MOTOR])/2 );
-  }
-#endif
-
-
 // Checks and reports if target array exceeds machine travel limits.
 uint8_t system_check_travel_limits(float *target)
 {
   uint8_t idx;
   for (idx=0; idx<N_AXIS; idx++) {
-    #ifdef HOMING_FORCE_SET_ORIGIN
-      // When homing forced set origin is enabled, soft limits checks need to account for directionality.
-      // NOTE: max_travel is stored as negative
-      if (bit_istrue(settings.homing_dir_mask,bit(idx))) {
-        if (target[idx] < 0 || target[idx] > -settings.max_travel[idx]) { return(true); }
-      } else {
-        if (target[idx] > 0 || target[idx] < settings.max_travel[idx]) { return(true); }
-      }
-    #else
-      // NOTE: max_travel is stored as negative
-      if (target[idx] > 0 || target[idx] < settings.max_travel[idx]) { return(true); }
-    #endif
+    // NOTE: max_travel is stored as negative
+    if (target[idx] > 0 || target[idx] < settings.max_travel[idx]) { return(true); }
   }
   return(false);
 }

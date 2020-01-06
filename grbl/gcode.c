@@ -252,6 +252,7 @@ uint8_t gc_execute_line(char *line)
               default: gc_block.modal.program_flow = int_value; // Program end and reset
             }
             break;
+
           case 3: case 4: case 5:
             word_bit = MODAL_GROUP_M7;
             switch(int_value) {
@@ -260,26 +261,18 @@ uint8_t gc_execute_line(char *line)
               case 5: gc_block.modal.spindle = SPINDLE_DISABLE; break;
             }
             break;
-          #ifdef ENABLE_M7
-            case 7: case 8: case 9:
-          #else
-            case 8: case 9:
-          #endif
-            word_bit = MODAL_GROUP_M8;
-            switch(int_value) {
-              #ifdef ENABLE_M7
-                case 7: gc_block.modal.coolant |= COOLANT_MIST_ENABLE; break;
-              #endif
-              case 8: gc_block.modal.coolant |= COOLANT_FLOOD_ENABLE; break;
-              case 9: gc_block.modal.coolant = COOLANT_DISABLE; break; // M9 disables both M7 and M8.
-            }
+          
+          case 8: case 9:
+               //JTS GG doesn't have coolant.
             break;
-          #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-            case 56:
-              word_bit = MODAL_GROUP_M9;
-              gc_block.modal.override = OVERRIDE_PARKING_MOTION;
-              break;
-          #endif
+
+          case 17: //JTS enabled stepper high power mode (until next idle).  USE SPARINGLY!!!
+            st_set_power_level('H');
+            break;
+          case 18: //JTS disable stepper motors
+            st_set_power_level('0');
+            break;
+
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
         }
 
@@ -434,16 +427,6 @@ uint8_t gc_execute_line(char *line)
 
   // [6. Change tool ]: N/A
   // [7. Spindle control ]: N/A
-  // [8. Coolant control ]: N/A
-  // [9. Override control ]: Not supported except for a Grbl-only parking motion override control.
-  #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-    if (bit_istrue(command_words,bit(MODAL_GROUP_M9))) { // Already set as enabled in parser.
-      if (bit_istrue(value_words,bit(WORD_P))) {
-        if (gc_block.values.p == 0.0) { gc_block.modal.override = OVERRIDE_DISABLED; }
-        bit_false(value_words,bit(WORD_P));
-      }
-    }
-  #endif
 
   // [10. Dwell ]: P value missing. P is negative (done.) NOTE: See below.
   if (gc_block.non_modal_command == NON_MODAL_DWELL) {
@@ -856,9 +839,9 @@ uint8_t gc_execute_line(char *line)
     if (command_words & ~(bit(MODAL_GROUP_G3) | bit(MODAL_GROUP_G6) | bit(MODAL_GROUP_G0)) ) { FAIL(STATUS_INVALID_JOG_COMMAND) };
     if (!(gc_block.non_modal_command == NON_MODAL_ABSOLUTE_OVERRIDE || gc_block.non_modal_command == NON_MODAL_NO_ACTION)) { FAIL(STATUS_INVALID_JOG_COMMAND); }
 
-    // Initialize planner data to current spindle and coolant modal state.
+    // Initialize planner data to current spindle modal state.
     pl_data->spindle_speed = gc_state.spindle_speed;
-    plan_data.condition = (gc_state.modal.spindle | gc_state.modal.coolant);
+    plan_data.condition = (gc_state.modal.spindle);
 
     uint8_t status = jog_execute(&plan_data, &gc_block);
     if (status == STATUS_OK) { memcpy(gc_state.position, gc_block.values.xyz, sizeof(gc_block.values.xyz)); }
@@ -914,17 +897,13 @@ uint8_t gc_execute_line(char *line)
   pl_data->feed_rate = gc_state.feed_rate; // Record data for planner use.
 
   // [4. Set spindle speed ]:
-  if ((gc_state.spindle_speed != gc_block.values.s) || bit_istrue(gc_parser_flags,GC_PARSER_LASER_FORCE_SYNC)) {
+  if ( (gc_state.spindle_speed != gc_block.values.s) || bit_istrue(gc_parser_flags,GC_PARSER_LASER_FORCE_SYNC) ) {
     if (gc_state.modal.spindle != SPINDLE_DISABLE) { 
-      #ifdef VARIABLE_SPINDLE
-        if (bit_isfalse(gc_parser_flags,GC_PARSER_LASER_ISMOTION)) {
-          if (bit_istrue(gc_parser_flags,GC_PARSER_LASER_DISABLE)) {
-             spindle_sync(gc_state.modal.spindle, 0.0);
-          } else { spindle_sync(gc_state.modal.spindle, gc_block.values.s); }
-        }
-      #else
-        spindle_sync(gc_state.modal.spindle, 0.0);
-      #endif
+      if (bit_isfalse(gc_parser_flags,GC_PARSER_LASER_ISMOTION)) {
+        if (bit_istrue(gc_parser_flags,GC_PARSER_LASER_DISABLE)) {
+           spindle_sync(gc_state.modal.spindle, 0.0);
+        } else { spindle_sync(gc_state.modal.spindle, gc_block.values.s); }
+      }
     }
     gc_state.spindle_speed = gc_block.values.s; // Update spindle speed state.
   }
@@ -947,23 +926,6 @@ uint8_t gc_execute_line(char *line)
     gc_state.modal.spindle = gc_block.modal.spindle;
   }
   pl_data->condition |= gc_state.modal.spindle; // Set condition flag for planner use.
-
-  // [8. Coolant control ]:
-  if (gc_state.modal.coolant != gc_block.modal.coolant) {
-    // NOTE: Coolant M-codes are modal. Only one command per line is allowed. But, multiple states
-    // can exist at the same time, while coolant disable clears all states.
-    coolant_sync(gc_block.modal.coolant);
-    gc_state.modal.coolant = gc_block.modal.coolant;
-  }
-  pl_data->condition |= gc_state.modal.coolant; // Set condition flag for planner use.
-
-  // [9. Override control ]: NOT SUPPORTED. Always enabled. Except for a Grbl-only parking control.
-  #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-    if (gc_state.modal.override != gc_block.modal.override) {
-      gc_state.modal.override = gc_block.modal.override;
-      mc_override_ctrl_update(gc_state.modal.override);
-    }
-  #endif
 
   // [10. Dwell ]:
   if (gc_block.non_modal_command == NON_MODAL_DWELL) { mc_dwell(gc_block.values.p); }
@@ -1100,14 +1062,6 @@ uint8_t gc_execute_line(char *line)
       // gc_state.modal.cutter_comp = CUTTER_COMP_DISABLE; // Not supported.
       gc_state.modal.coord_select = 0; // G54
       gc_state.modal.spindle = SPINDLE_DISABLE;
-      gc_state.modal.coolant = COOLANT_DISABLE;
-      #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-        #ifdef DEACTIVATE_PARKING_UPON_INIT
-          gc_state.modal.override = OVERRIDE_DISABLED;
-        #else
-          gc_state.modal.override = OVERRIDE_PARKING_MOTION;
-        #endif
-      #endif
 
       #ifdef RESTORE_OVERRIDES_AFTER_PROGRAM_END
         sys.f_override = DEFAULT_FEED_OVERRIDE;
@@ -1115,12 +1069,11 @@ uint8_t gc_execute_line(char *line)
         sys.spindle_speed_ovr = DEFAULT_SPINDLE_SPEED_OVERRIDE;
       #endif
 
-      // Execute coordinate change and spindle/coolant stop.
+      // Execute coordinate change and spindle stop.
       if (sys.state != STATE_CHECK_MODE) {
         if (!(settings_read_coord_data(gc_state.modal.coord_select,gc_state.coord_system))) { FAIL(STATUS_SETTING_READ_FAIL); }
         system_flag_wco_change(); // Set to refresh immediately just in case something altered.
         spindle_set_state(SPINDLE_DISABLE,0.0);
-        coolant_set_state(COOLANT_DISABLE);
       }
       report_feedback_message(MESSAGE_PROGRAM_END);
     }
@@ -1152,7 +1105,6 @@ uint8_t gc_execute_line(char *line)
    group 6 = {M6} (Tool change)
    group 7 = {G41, G42} cutter radius compensation (G40 is supported)
    group 8 = {G43} tool length offset (G43.1/G49 are supported)
-   group 8 = {M7*} enable mist coolant (* Compile-option)
    group 9 = {M48, M49, M56*} enable/disable override switches (* Compile-option)
    group 10 = {G98, G99} return mode canned cycles
    group 13 = {G61.1, G64} path control mode (G61 is supported)

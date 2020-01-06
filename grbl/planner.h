@@ -22,15 +22,17 @@
 #ifndef planner_h
 #define planner_h
 
-
-// The number of linear motions that can be in the plan at any give time
-#ifndef BLOCK_BUFFER_SIZE
-  #ifdef USE_LINE_NUMBERS
-    #define BLOCK_BUFFER_SIZE 15
-  #else
-    #define BLOCK_BUFFER_SIZE 16
-  #endif
+// The number of linear motions in the planner buffer to be planned at any give time. The vast
+// majority of RAM that Grbl uses is based on this buffer size. Only increase if there is extra
+// available RAM, like when re-compiling for a Mega2560. Or decrease if the Arduino begins to
+// crash due to the lack of available RAM or if the CPU is having trouble keeping up with planning
+// new incoming motions as they are executed.
+#ifdef USE_LINE_NUMBERS
+  #define BLOCK_BUFFER_SIZE 15
+#else
+  #define BLOCK_BUFFER_SIZE 16
 #endif
+
 
 // Returned status message from planner.
 #define PLAN_OK true
@@ -43,11 +45,9 @@
 #define PL_COND_FLAG_INVERSE_TIME      bit(3) // Interprets feed rate value as inverse time when set.
 #define PL_COND_FLAG_SPINDLE_CW        bit(4)
 #define PL_COND_FLAG_SPINDLE_CCW       bit(5)
-#define PL_COND_FLAG_COOLANT_FLOOD     bit(6)
-#define PL_COND_FLAG_COOLANT_MIST      bit(7)
 #define PL_COND_MOTION_MASK    (PL_COND_FLAG_RAPID_MOTION|PL_COND_FLAG_SYSTEM_MOTION|PL_COND_FLAG_NO_FEED_OVERRIDE)
 #define PL_COND_SPINDLE_MASK   (PL_COND_FLAG_SPINDLE_CW|PL_COND_FLAG_SPINDLE_CCW)
-#define PL_COND_ACCESSORY_MASK (PL_COND_FLAG_SPINDLE_CW|PL_COND_FLAG_SPINDLE_CCW|PL_COND_FLAG_COOLANT_FLOOD|PL_COND_FLAG_COOLANT_MIST)
+#define PL_COND_ACCESSORY_MASK (PL_COND_FLAG_SPINDLE_CW|PL_COND_FLAG_SPINDLE_CCW)
 
 
 // This struct stores a linear movement of a g-code block motion with its critical "nominal" values
@@ -79,10 +79,9 @@ typedef struct {
   float rapid_rate;             // Axis-limit adjusted maximum rate for this block direction in (mm/min)
   float programmed_rate;        // Programmed rate of this block (mm/min).
 
-  #ifdef VARIABLE_SPINDLE
-    // Stored spindle speed data used by spindle overrides and resuming methods.
-    float spindle_speed;    // Block spindle speed. Copied from pl_line_data.
-  #endif
+  // Stored spindle speed data used by spindle overrides and resuming methods.
+  float spindle_speed;    // Block spindle speed. Copied from pl_line_data.
+
 } plan_block_t;
 
 
@@ -110,7 +109,7 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data);
 // availible for new blocks.
 void plan_discard_current_block();
 
-// Gets the planner block for the special system motion cases. (Parking/Homing)
+// Gets the planner block for the special system motion cases. (e.g. Homing)
 plan_block_t *plan_get_system_motion_block();
 
 // Gets the current block. Returns NULL if buffer empty

@@ -208,13 +208,6 @@ void mc_homing_cycle(uint8_t cycle_mask)
   // Check and abort homing cycle, if hard limits are already enabled. Helps prevent problems
   // with machines with limits wired on both ends of travel to one limit pin.
   // TODO: Move the pin-specific LIMIT_PIN call to limits.c as a function.
-  #ifdef LIMITS_TWO_SWITCHES_ON_AXES
-    if (limits_get_state()) {
-      mc_reset(); // Issue system reset and ensure spindle and coolant are shutdown.
-      system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT);
-      return;
-    }
-  #endif
 
   limits_disable(); // Disable hard limits pin change register for cycle duration
 
@@ -277,6 +270,10 @@ uint8_t mc_probe_cycle(float *target, plan_line_data_t *pl_data, uint8_t parser_
     return(GC_PROBE_FAIL_INIT); // Nothing else to do but bail.
   }
 
+  //JTS enable probe interrupt pin mask
+  PCMSK1 = (CONTROL_MASK | PROBE_MASK); //JTS After probe trips, ISR disables probe interrupt
+  sys.probe_interrupt_occurred = 0; //JTS Initialize value
+
   // Setup and queue probing motion. Auto cycle-start should not start the cycle.
   mc_line(target, pl_data);
 
@@ -317,47 +314,6 @@ uint8_t mc_probe_cycle(float *target, plan_line_data_t *pl_data, uint8_t parser_
   else { return(GC_PROBE_FAIL_END); } // Failed to trigger probe within travel. With or without error.
 }
 
-
-// Plans and executes the single special motion case for parking. Independent of main planner buffer.
-// NOTE: Uses the always free planner ring buffer head to store motion parameters for execution.
-#ifdef PARKING_ENABLE
-  void mc_parking_motion(float *parking_target, plan_line_data_t *pl_data)
-  {
-    if (sys.abort) { return; } // Block during abort.
-
-    uint8_t plan_status = plan_buffer_line(parking_target, pl_data);
-
-    if (plan_status) {
-      bit_true(sys.step_control, STEP_CONTROL_EXECUTE_SYS_MOTION);
-      bit_false(sys.step_control, STEP_CONTROL_END_MOTION); // Allow parking motion to execute, if feed hold is active.
-      st_parking_setup_buffer(); // Setup step segment buffer for special parking motion case
-      st_prep_buffer();
-      st_wake_up();
-      do {
-        protocol_exec_rt_system();
-        if (sys.abort) { return; }
-      } while (sys.step_control & STEP_CONTROL_EXECUTE_SYS_MOTION);
-      st_parking_restore_buffer(); // Restore step segment buffer to normal run state.
-    } else {
-      bit_false(sys.step_control, STEP_CONTROL_EXECUTE_SYS_MOTION);
-      protocol_exec_rt_system();
-    }
-
-  }
-#endif
-
-
-#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-  void mc_override_ctrl_update(uint8_t override_state)
-  {
-    // Finish all queued commands before altering override control state
-    protocol_buffer_synchronize();
-    if (sys.abort) { return; }
-    sys.override_ctrl = override_state;
-  }
-#endif
-
-
 // Method to ready the system to reset by setting the realtime reset command and killing any
 // active processes in the system. This also checks if a system reset is issued while Grbl
 // is in a motion state. If so, kills the steppers and sets the system alarm to flag position
@@ -369,9 +325,8 @@ void mc_reset()
   if (bit_isfalse(sys_rt_exec_state, EXEC_RESET)) {
     system_set_exec_state_flag(EXEC_RESET);
 
-    // Kill spindle and coolant.
+    // Kill spindle
     spindle_stop();
-    coolant_stop();
 
     // Kill steppers only if in any motion state, i.e. cycle, actively holding, or homing.
     // NOTE: If steppers are kept enabled via the step idle delay setting, this also keeps
@@ -382,7 +337,9 @@ void mc_reset()
       if (sys.state == STATE_HOMING) { 
         if (!sys_rt_exec_alarm) {system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_RESET); }
       } else { system_set_exec_alarm(EXEC_ALARM_ABORT_CYCLE); }
-      st_go_idle(); // Force kill steppers. Position has likely been lost.
+
+      st_go_idle(); // Clean up steppers. Position has likely been lost.
+      st_set_power_level('0'); //turn steppers completely off
     }
   }
 }

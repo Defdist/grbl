@@ -22,9 +22,13 @@
 #ifndef stepper_h
 #define stepper_h
 
-#ifndef SEGMENT_BUFFER_SIZE
-  #define SEGMENT_BUFFER_SIZE 6
-#endif
+// Governs the size of the intermediary step segment buffer between the step execution algorithm
+// and the planner blocks. Each segment is set of steps executed at a constant velocity over a
+// fixed time defined by ACCELERATION_TICKS_PER_SECOND. They are computed such that the planner
+// block velocity profile is traced exactly. The size of this buffer governs how much step
+// execution lead time there is for other Grbl processes have to compute and do their thing
+// before having to come back and refill this buffer, currently at ~50msec of step moves.
+#define SEGMENT_BUFFER_SIZE 6
 
 // Initialize and setup the stepper motor subsystem
 void stepper_init();
@@ -35,17 +39,17 @@ void st_wake_up();
 // Immediately disables steppers
 void st_go_idle();
 
+// Set stepper power level.
+void st_set_power_level(char level);
+
+// Get stepper power level.
+uint8_t st_is_power_level_HIGH();
+
 // Generate the step and direction port invert masks.
 void st_generate_step_dir_invert_masks();
 
 // Reset the stepper subsystem variables
 void st_reset();
-
-// Changes the run state of the step segment buffer to execute the special parking motion.
-void st_parking_setup_buffer();
-
-// Restores the step segment buffer to the normal run state after a parking motion.
-void st_parking_restore_buffer();
 
 // Reloads step segment buffer. Called continuously by realtime execution system.
 void st_prep_buffer();
