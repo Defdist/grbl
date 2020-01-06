@@ -14,6 +14,21 @@ A standards-compliant g-code controller that will look up to 16 motions into the
 * Built on the wonderful Grbl v0.6 (2011) firmware written by Simen Svale Skogsrud (Norway).
 
 ***
+## How to upload source code to Arduino  
+  -1: Download and install Arduino IDE  
+  -2: Clone/download this repository  
+  -3: Place folder "grblDD" into Arduino libraries folder (on a Mac, that's ~/Documents/Arduino/libraries)**  
+  -4: Launch Arduino, then go to File>Examples... all the way at the bottom you'll see grblDD>grblUpload  
+  -5: Select COM port (Tools>Port)  
+  -6: Click "Upload" button (looks like an arrow pointing to the right)
+
+  **Optional: On a Mac, to prevent having to manually perform this step each time grblDD is updated, create a symbolic link (using Terminal):  
+  ln -s /path/to/original /path/to/symbolic/link  
+  where:  
+  -"/path/to/original" is wherever your git directory cloned to
+  -"/path/to/symbolic/link" is the Arduino libraries folder (~/Documents/Arduino/libraries)
+  Example:  
+  ln -s /Users/jts/Documents/GitHub/grbl/grblDD /Users/jts/Documents/Arduino/libraries  
 
 ## Update Summary for grblDD 0v1
 Items listed below are changes to standard grbl 1v1h:
