@@ -1,67 +1,71 @@
-![GitHub Logo](https://github.com/gnea/gnea-Media/blob/master/Grbl%20Logo/Grbl%20Logo%20250px.png?raw=true)
 
-***
-_Click the `Release` tab to download pre-compiled `.hex` files or just [click here](https://github.com/gnea/grbl/releases)_
-***
-Grbl is a no-compromise, high performance, low cost alternative to parallel-port-based motion control for CNC milling. This version of Grbl runs on an Arduino with a 328p processor (Uno, Duemilanove, Nano, Micro, etc).
 
-The controller is written in highly optimized C utilizing every clever feature of the AVR-chips to achieve precise timing and asynchronous operation. It is able to maintain up to 30kHz of stable, jitter free control pulses.
 
-It accepts standards-compliant g-code and has been tested with the output of several CAM tools with no problems. Arcs, circles and helical motion are fully supported, as well as, all other primary g-code commands. Macro functions, variables, and most canned cycles are not supported, but we think GUIs can do a much better job at translating them into straight g-code anyhow.
+GrblDD, for Ghost Gunner
 
-Grbl includes full acceleration management with look ahead. That means the controller will look up to 16 motions into the future and plan its velocities ahead to deliver smooth acceleration and jerk-free cornering.
+A standards-compliant g-code controller that will look up to 16 motions into the future to deliver smooth acceleration and jerk-free cornering.
 
-* [Licensing](https://github.com/gnea/grbl/wiki/Licensing): Grbl is free software, released under the GPLv3 license.
+* [Licensing](https://github.com/gnea/grbl/wiki/Licensing): GrblDD is free software, released under the GPLv3 license.
 
-* For more information and help, check out our **[Wiki pages!](https://github.com/gnea/grbl/wiki)** If you find that the information is out-dated, please to help us keep it updated by editing it or notifying our community! Thanks!
+* Lead bitbanger: JTS aka @doppelhub
 
-* Lead Developer: Sungeun "Sonny" Jeon, Ph.D. (USA) aka @chamnit
+* Built on the wonderful Grbl v1.1c (2019) firmware written by Sungeun "Sonny" Jeon, Ph.D. (USA) aka @chamnit
 
 * Built on the wonderful Grbl v0.6 (2011) firmware written by Simen Svale Skogsrud (Norway).
 
 ***
 
-### Official Supporters of the Grbl CNC Project
-![Official Supporters](https://github.com/gnea/gnea-Media/blob/master/Contributors.png?raw=true)
+## Update Summary for grblDD 0v1
+Items listed below are changes to standard grbl 1v1h
 
+- **IMPORTANT:** After updating firmware, You must update EEPROM using "$RST=*".
+--  For our prototyping needs, we can just manually send that command.
+--  For release, DDcut should probably just always send that command after updating grbl firmware (if we don't do that already).
 
-***
+-When a user updates the firmware on a GG1/GG2 machine, the user will need to tell DDcut which machine they have (GG1 w/ GG1 spindle), (GG1 w/ GG2 spindle), (GG2)(e.g. via a pop-up window).
+--DDcut will then need to select the correct firmware version to install.
 
-## Update Summary for v1.1
-- **IMPORTANT:** Your EEPROM will be wiped and restored with new settings. This is due to the addition of two new spindle speed '$' settings.
+-$HX, $HY, or $HZ homes single axis ($H still homes all axes).  This should make testing limit switch tab placement easier.
 
-- **Real-time Overrides** : Alters the machine running state immediately with feed, rapid, spindle speed, spindle stop, and coolant toggle controls. This awesome new feature is common only on industrial machines, often used to optimize speeds and feeds while a job is running. Most hobby CNC's try to mimic this behavior, but usually have large amounts of lag. Grbl executes overrides in realtime and within tens of milliseconds.
+-Probing should work better than you've ever seen it work.  Of course, y'all can't test it until I send 64M1 firmware (spindle).
 
-- **Jogging Mode** : The new jogging commands are independent of the g-code parser, so that the parser state doesn't get altered and cause a potential crash if not restored properly. Documentation is included on how this works and how it can be used to control your machine via a joystick or rotary dial with a low-latency, satisfying response.
+-Steppers now automatically configure power levels.  You'll notice steppers run much cooler.
 
-- **Laser Mode** : The new "laser" mode will cause Grbl to move continuously through consecutive G1, G2, and G3 commands with spindle speed changes. When "laser" mode is disabled, Grbl will instead come to a stop to ensure a spindle comes up to speed properly. Spindle speed overrides also work with laser mode so you can tweak the laser power, if you need to during the job. Switch between "laser" mode and "normal" mode via a `$` setting.
+-'M17' command: places steppers into high power mode (ONLY during the next motion command).  USE SPARINGLY... PCB overheat in ~5 seconds.  Intended use: freeing bound X axis.
+Note: This replaces '$K' functionality I previously described.
 
-	- **Dynamic Laser Power Scaling with Speed** : If your machine has low accelerations, Grbl will automagically scale the laser power based on how fast Grbl is traveling, so you won't have burnt corners when your CNC has to make a turn! Enabled by the `M4` spindle CCW command when laser mode is enabled!
+-'M18' command: turn steppers off (until next motion command).  Allows you to hand turn motors without unplugging GG.  Useful for assembly/troubleshooting.
+Note: This replaces '$O' functionality I previously described.
 
-- **Sleep Mode** : Grbl may now be put to "sleep" via a `$SLP` command. This will disable everything, including the stepper drivers. Nice to have when you are leaving your machine unattended and want to power down everything automatically. Only a reset exits the sleep state.
+-When GG hits a hard limit switch, the "ALARM:1" response is now followed by the tripped axis (i.e. "ALARM:1X", "ALARM:1Y", or "ALARM:1Z").
+This should make it easier for our customers to figure out which limit switch has tripped.
 
-- **Significant Interface Improvements**: Tweaked to increase overall performance, include lots more real-time data, and to simplify maintaining and writing GUIs. Based on direct feedback from multiple GUI developers and bench performance testing. _NOTE: GUIs need to specifically update their code to be compatible with v1.1 and later._
+-Simplified realtime reporting (i.e. data returned by '?' command)
+grbl1v1 made it difficult to automatically parse data.  I fixed the following issues:
+--every single '?' is now always formatted exactly the same way.  Previously, certain commands were only returned every 10 or 20 requests.
+--feedrate and spindle rpm are no longer returned here (they're already available via '$G' parser state).
+--When a limit switch or probe isn't tripped, the corresponding digit is now filled with '0'.  Previously, non-tripped parameters were not sent at all.
+Returned data from '?' is formatted as follows:
+<machine state | absolute WCS (X,Y,Z) | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | PXYZ (letter appears only if tripped)>
+Examples:
+<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | 0000> (idle | WCS | Buffers completely empty | nothing is tripped (probe/X/Y/Z all equal 0)
+<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | P000> (same as above, except probe is tripped)
+<Hold:0 | M:-91.500,-20.000,-0.500 | Bf:15,1 | P000> (same as above, except machine is in feedhold & RX buffer is full)
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0X00> (machine hasn't been homed, X limit switch is tripped**)
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 00Y0> (machine hasn't been homed, Y limit switch is tripped**)
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 000Z> (machine hasn't been homed, Z limit switch is tripped**)
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0XY0> (machine hasn't been homed, X & Y limit switches are tripped**)
+**Note: you cannot query '?' after a hard limit occurs.  Thus, you can only see which limit switch is tripped prior to initial homing sequence.
 
-	- **New Status Reports**: To account for the additional override data, status reports have been tweaked to cram more data into it, while still being smaller than before. Documentation is included, outlining how it has been changed. 
-	- **Improved Error/Alarm Feedback** : All Grbl error and alarm messages have been changed to providing a code. Each code is associated with a specific problem, so users will know exactly what is wrong without having to guess. Documentation and an easy to parse CSV is included in the repo.
-	- **Extended-ASCII realtime commands** : All overrides and future real-time commands are defined in the extended-ASCII character space. Unfortunately not easily type-able on a keyboard, but helps prevent accidental commands from a g-code file having these characters and gives lots of space for future expansion.
-	- **Message Prefixes** : Every message type from Grbl has a unique prefix to help GUIs immediately determine what the message is and parse it accordingly without having to know context. The prior interface had several instances of GUIs having to figure out the meaning of a message, which made everything more complicated than it needed to be.
-
-- New OEM specific features, such as safety door parking, single configuration file build option, EEPROM restrictions and restoring controls, and storing product data information.
- 
-- New safety door parking motion as a compile-option. Grbl will retract, disable the spindle/coolant, and park near Z max. When resumed, it will perform these task in reverse order and continue the program. Highly configurable, even to add more than one parking motion. See config.h for details.
-
-- New '$' Grbl settings for max and min spindle rpm. Allows for tweaking the PWM output to more closely match true spindle rpm. When max rpm is set to zero or less than min rpm, the PWM pin D11 will act like a simple enable on/off output.
-
-- Updated G28 and G30 behavior from NIST to LinuxCNC g-code description. In short, if a intermediate motion is specified, only the axes specified will move to the stored coordinates, not all axes as before.
-
-- Lots of minor bug fixes and refactoring to make the code more efficient and flexible.
-
-- **NOTE:** Arduino Mega2560 support has been moved to an active, official Grbl-Mega [project](http://www.github.com/gnea/grbl-Mega/). All new developments here and there will be synced when it makes sense to.
-
+$I returns GG hardware/firmware versions (e.g. "[grbl:1.1h GG:3A PCB:3B VFD:3A YMD:20200101]"), where:
+  -"GG:3A" is a GG3 mechanical assembly, with revision A hardware.  This number should always be the actual machine hardware (i.e. a GG1 unit will always return itself as GG:1_)
+  -"PCB:3B" is a GG1/2/3 machine with a GG3 PCB inside (revision B).
+  -"VFD:3A" is a GG1/2/3 machine with VFD firmware 3A... note machines that don't have VFD hardware will return "VFD:00". 
+  -"YMD20200101" is the build year/month/date (YYYYMMDD).
+  -Keep in mind that all existing GG1/GG2 machines will return the old $I data until their firmware gets upgraded.
 
 ```
-List of Supported G-Codes in Grbl v1.1:
+List of Supported G-Codes:
   - Non-Modal Commands: G4, G10L2, G10L20, G28, G30, G28.1, G30.1, G53, G92, G92.1
   - Motion Modes: G0, G1, G2, G3, G38.2, G38.3, G38.4, G38.5, G80
   - Feed Rate Modes: G93, G94
@@ -74,12 +78,9 @@ List of Supported G-Codes in Grbl v1.1:
   - Coordinate System Modes: G54, G55, G56, G57, G58, G59
   - Control Modes: G61
   - Program Flow: M0, M1, M2, M30*
-  - Coolant Control: M7*, M8, M9
   - Spindle Control: M3, M4, M5
+  - Stepper High power mode (next motion command only): M17
+  - Stepper Zero power mode (until next motion command): M18
   - Valid Non-Command Words: F, I, J, K, L, N, P, R, S, T, X, Y, Z
 ```
 
--------------
-Grbl is an open-source project and fueled by the free-time of our intrepid administrators and altruistic users. If you'd like to donate, all proceeds will be used to help fund supporting hardware and testing equipment. Thank you!
-
-[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CUGXJHXA36BYW)
