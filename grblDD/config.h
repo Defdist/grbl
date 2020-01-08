@@ -128,7 +128,7 @@
 
 // Allows GRBL to track and report gcode line numbers.  Enabling this means that the planning buffer
 // goes from 16 to 15 to make room for the additional line number data in the plan_block_t struct
-//#define USE_LINE_NUMBERS // Disabled by default. Uncomment to enable.
+#define USE_LINE_NUMBERS // Disabled by default. Uncomment to enable.
 
 // Upon a successful probe cycle, this option provides immediately feedback of the probe coordinates
 // through an automatically generated message. If disabled, users can still access the last probe
