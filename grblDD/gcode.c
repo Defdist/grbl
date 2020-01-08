@@ -143,7 +143,7 @@ uint8_t gc_execute_line(char *line)
       case 'G':
         // Determine 'G' command and its modal group
         switch(int_value) {
-          case 10: case 28: case 30: case 92:
+          case 10: case 28: case 30: case 92: //G10 G28 G30 G92
             // Check for G10/28/30/92 being called with G0/1/2/3/38 on same block.
             // * G43.1 is also an axis command but is not explicitly defined this way.
             if (mantissa == 0) { // Ignore G28.1, G30.1, and G92.1
@@ -151,7 +151,7 @@ uint8_t gc_execute_line(char *line)
               axis_command = AXIS_COMMAND_NON_MODAL;
             }
             // No break. Continues to next line.
-          case 4: case 53:
+          case 4: case 53: //G4 G53
             word_bit = MODAL_GROUP_G0;
             gc_block.non_modal_command = int_value;
             if ((int_value == 28) || (int_value == 30) || (int_value == 92)) {
@@ -161,12 +161,12 @@ uint8_t gc_execute_line(char *line)
             }                
             break;
           case 0: case 1: case 2: case 3: case 38:
-            // Check for G0/1/2/3/38 being called with G10/28/30/92 on same block.
+            // Check for G0/G1/G2/G3/G38 being called with G10/G28/G30/G92 on same block.
             // * G43.1 is also an axis command but is not explicitly defined this way.
             if (axis_command) { FAIL(STATUS_GCODE_AXIS_COMMAND_CONFLICT); } // [Axis word/command conflict]
             axis_command = AXIS_COMMAND_MOTION_MODE;
             // No break. Continues to next line.
-          case 80:
+          case 80: //G80
             word_bit = MODAL_GROUP_G1;
             gc_block.modal.motion = int_value;
             if (int_value == 38){
@@ -177,11 +177,11 @@ uint8_t gc_execute_line(char *line)
               mantissa = 0; // Set to zero to indicate valid non-integer G command.
             }  
             break;
-          case 17: case 18: case 19:
+          case 17: case 18: case 19: //G17 G18 G19
             word_bit = MODAL_GROUP_G2;
             gc_block.modal.plane_select = int_value - 17;
             break;
-          case 90: case 91:
+          case 90: case 91: //G90 G91
             if (mantissa == 0) {
               word_bit = MODAL_GROUP_G3;
               gc_block.modal.distance = int_value - 90;
@@ -192,21 +192,21 @@ uint8_t gc_execute_line(char *line)
               // Otherwise, arc IJK incremental mode is default. G91.1 does nothing.
             }
             break;
-          case 93: case 94:
+          case 93: case 94: //G93 G94
             word_bit = MODAL_GROUP_G5;
             gc_block.modal.feed_rate = 94 - int_value;
             break;
-          case 20: case 21:
+          case 20: case 21: //G20 G21
             word_bit = MODAL_GROUP_G6;
             gc_block.modal.units = 21 - int_value;
             break;
-          case 40:
+          case 40: //G40
             word_bit = MODAL_GROUP_G7;
             // NOTE: Not required since cutter radius compensation is always disabled. Only here
             // to support G40 commands that often appear in g-code program headers to setup defaults.
             // gc_block.modal.cutter_comp = CUTTER_COMP_DISABLE; // G40
             break;
-          case 43: case 49:
+          case 43: case 49: //G43 G49
             word_bit = MODAL_GROUP_G8;
             // NOTE: The NIST g-code standard vaguely states that when a tool length offset is changed,
             // there cannot be any axis motion or coordinate offsets updated. Meaning G43, G43.1, and G49
@@ -220,12 +220,12 @@ uint8_t gc_execute_line(char *line)
             } else { FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); } // [Unsupported G43.x command]
             mantissa = 0; // Set to zero to indicate valid non-integer G command.
             break;
-          case 54: case 55: case 56: case 57: case 58: case 59:
+          case 54: case 55: case 56: case 57: case 58: case 59: //G54 G55 G56 G57 G58 G59
             // NOTE: G59.x are not supported. (But their int_values would be 60, 61, and 62.)
             word_bit = MODAL_GROUP_G12;
             gc_block.modal.coord_select = int_value - 54; // Shift to array indexing.
             break;
-          case 61:
+          case 61: //G61
             word_bit = MODAL_GROUP_G13;
             if (mantissa != 0) { FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); } // [G61.1 not supported]
             // gc_block.modal.control = CONTROL_MODE_EXACT_PATH; // G61

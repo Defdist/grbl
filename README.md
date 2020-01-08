@@ -30,7 +30,7 @@ A standards-compliant g-code controller that will look up to 16 motions into the
   Example:  
   ln -s /Users/jts/Documents/GitHub/grbl/grblDD /Users/jts/Documents/Arduino/libraries  
 
-## Update Summary for grblDD 0v1
+## Update Summary for grblDD 3v0
 Items listed below are changes to standard grbl 1v1h:
 
 - **IMPORTANT:** After updating firmware, You must update EEPROM using "$RST=*".  
@@ -55,21 +55,35 @@ Note: This replaces '$O' functionality previously described.
 -When GG hits a hard limit switch, the "ALARM:1" response is now followed by the tripped axis (i.e. "ALARM:1X", "ALARM:1Y", or "ALARM:1Z").  
 This should make it easier for our customers to figure out which limit switch has tripped.  
 
+If a particular g-code line contains a formatting error, grbl will now echo the entire line, then report the error number.  
+--Example (sending "g0 X-J"):  
+--New grbl response:  
+---[echo: G0X-J]  
+---error:2  
+--(Note: the echoed line contains all capitalized letters, no spaces, and no comments)  
+
+If the g-code contains line numbers (e.g. "N123 G0 X-1"), grbl will now return the line currently executing when '?' is received.  
+If the g-code does not contain a line number (e.g. G0 X-1"), grbl returns '0'.  
+If no line is currently executing (e.g. grbl is IDLE), grbl returns '0'.  
+--Example (Send "N122 G1 Y-20 F100".  While that line is running, send '?'):.  
+--New grbl response:  
+---<Run|M:-91.500,-24.440,-0.500|B:13,128|L:122|0000>  
+
 -Simplified realtime reporting (i.e. data returned by '?' command).  grbl1v1 made it difficult to automatically parse data.  
 The following improvements were made:  
 --every single '?' is now always formatted exactly the same way.  Previously, certain commands were only returned every 10 or 20 requests.  
 --feedrate and spindle rpm are no longer returned here (they're already available via '$G' parser state).  
 --When a limit switch or probe isn't tripped, the corresponding digit is now filled with '0'.  Previously, non-tripped parameters were not sent at all.  
 Returned data from '?' is formatted as follows:  
-<machine state | absolute WCS (X,Y,Z) | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | PXYZ (letter appears only if tripped)>  
+<state | M:X,Y,Z<absolute WCS> | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | L:nnnnnnn | PXYZ (letter appears only if tripped)>  
 Examples:  
-<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | 0000> (idle | WCS | Buffers completely empty | nothing is tripped (probe/X/Y/Z all equal 0)  
-<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | P000> (same as above, except probe is tripped)  
-<Hold:0 | M:-91.500,-20.000,-0.500 | Bf:15,1 | P000> (same as above, except machine is in feedhold & RX buffer is full)  
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0X00> (machine hasn't been homed, X limit switch is tripped**)  
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 00Y0> (machine hasn't been homed, Y limit switch is tripped**)  
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 000Z> (machine hasn't been homed, Z limit switch is tripped**)  
-<Alarm | M:0.000,0.000,0.000 | B:15,128 | 0XY0> (machine hasn't been homed, X & Y limit switches are tripped**)  
+<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | L:0 | 0000> (idle | WCS | Buffers completely empty | nothing is tripped (probe/X/Y/Z all equal 0)  
+<Idle | M:-91.500,-20.000,-0.500 | B:15,128 | L:0 | P000> (same as above, except probe is tripped)  
+<Hold:0 | M:-91.500,-20.000,-0.500 | Bf:15,1 | L:0 | P000> (same as above, except machine is in feedhold & RX buffer is full)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | L:0 | 0X00> (machine hasn't been homed, X limit switch is tripped**)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | L:0 | 00Y0> (machine hasn't been homed, Y limit switch is tripped**)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | L:0 | 000Z> (machine hasn't been homed, Z limit switch is tripped**)  
+<Alarm | M:0.000,0.000,0.000 | B:15,128 | L:0 | 0XY0> (machine hasn't been homed, X & Y limit switches are tripped**)  
 **Note: you cannot query '?' after a hard limit occurs.  Thus, you can only see which limit switch is tripped prior to initial homing sequence.  
 
 $I returns GG hardware/firmware versions (e.g. "[grbl:1.1h GG:3A PCB:3B VFD:3A YMD:20200101]"), where:  

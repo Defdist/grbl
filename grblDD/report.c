@@ -430,17 +430,15 @@ void report_realtime_status() //data returned by typing in '?'
     }
   #endif
 
+  // Returns line number currently executing (if g-code contains "N___")  
   #ifdef USE_LINE_NUMBERS
     #ifdef REPORT_FIELD_LINE_NUMBERS
       // Report current line number
       plan_block_t * cur_block = plan_get_current_block();
-      if (cur_block != NULL) {
-        uint32_t ln = cur_block->line_number;
-        if (ln > 0) {
-          printPgmString(PSTR("|Ln:"));
-          printInteger(ln);
-        }
-      }
+      uint32_t ln = cur_block->line_number;
+      printPgmString(PSTR("|L:"));    
+      if ( (cur_block != NULL) && (ln > 0) ) {printInteger(ln);}
+      else {serial_write('0');}
     #endif
   #endif
 

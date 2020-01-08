@@ -31,7 +31,6 @@ static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static void protocol_exec_rt_suspend();
 
-
 /*
   GRBL PRIMARY LOOP:
 */
@@ -55,9 +54,10 @@ void protocol_main_loop()
   // This is also where Grbl idles while waiting for something to do.
   // ---------------------------------------------------------------------------------
 
-  uint8_t line_flags = 0;
+  uint8_t line_flags = 0; //an error that occurred while building the line
   uint8_t char_counter = 0;
   uint8_t c;
+  uint8_t line_errors = 0; //an error that occurred while executing the line
   for (;;) {
 
     // Process one line of incoming serial data, as the data becomes available. Performs an
@@ -76,23 +76,30 @@ void protocol_main_loop()
         // Direct and execute one line of formatted input, and report status of execution.
         if (line_flags & LINE_FLAG_OVERFLOW) { // true if serial data exceeds 80 characters (before \n)
           // Report line overflow error.
+          report_echo_line_received(line);
           report_status_message(STATUS_OVERFLOW);
-        
+
+
         } else if (line[0] == 0) {
           // Empty or comment line. For syncing purposes.    
           report_status_message(STATUS_OK);
         
         } else if (line[0] == '$') {
           // Grbl '$' system command
-          report_status_message(system_execute_line(line));
-        
+          line_errors = system_execute_line(line);
+          if(line_errors){report_echo_line_received(line);}
+          report_status_message(line_errors);
+
         } else if (sys.state & (STATE_ALARM | STATE_JOG)) { //Block if in alarm or jog mode.
           // Everything else is gcode. 
+          report_echo_line_received(line);
           report_status_message(STATUS_SYSTEM_GC_LOCK);
         
         } else {
           // Parse and execute g-code block.
-          report_status_message(gc_execute_line(line));
+          line_errors = gc_execute_line(line);
+          if(line_errors){report_echo_line_received(line);}
+          report_status_message(line_errors);
         }
 
         // Reset tracking data for next line.
