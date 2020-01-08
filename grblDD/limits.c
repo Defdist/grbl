@@ -111,6 +111,11 @@ ISR(LIMIT_INT_vect) //Limit pin change interrupt process.
   }
 }
 
+void limits_go_level(uint8_t cycle_mask)
+{
+  
+}
+
 // Homes the specified cycle axes, sets the machine position, and performs a pull-off motion after
 // completing. Homing is a special motion case, which involves rapid uncontrolled stops to locate
 // the trigger point of the limit switches. The rapid stops are handled by a system level axis lock

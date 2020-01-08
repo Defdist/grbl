@@ -204,7 +204,7 @@ void mc_level_table(uint8_t cyclemask)
   
 }
 
-// Perform homing cycle to locate and set machine zero. Only '$H' executes this command.
+// Perform homing cycle to locate and set machine zero. Only $H,$HX,$HY,$HZ execute this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
 // executing the homing cycle. This prevents incorrect buffered plans after homing.
 void mc_homing_cycle(uint8_t cycle_mask)

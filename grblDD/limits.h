@@ -32,6 +32,9 @@ void limits_disable();
 // Returns limit state as a bit-wise uint8 variable.
 uint8_t limits_get_state();
 
+// JTS 2do: not 100% sure why grbl has this (see mc_level_table
+void limits_go_level(uint8_t cycle_mask)
+
 // Perform one portion of the homing cycle based on the input settings.
 void limits_go_home(uint8_t cycle_mask);
 
