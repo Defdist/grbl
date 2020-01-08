@@ -62,7 +62,7 @@ void protocol_main_loop()
 
     // Process one line of incoming serial data, as the data becomes available. Performs an
     // initial filtering by removing spaces and comments and capitalizing all letters.
-    while((c = serial_read()) != SERIAL_NO_DATA) {
+    while((c = serial_read()) != SERIAL_NO_DATA) { //
       if ((c == '\n') || (c == '\r')) { // End of line reached
 
         protocol_execute_realtime(); // Runtime command check point.
@@ -74,18 +74,22 @@ void protocol_main_loop()
         #endif
 
         // Direct and execute one line of formatted input, and report status of execution.
-        if (line_flags & LINE_FLAG_OVERFLOW) {
+        if (line_flags & LINE_FLAG_OVERFLOW) { // true if serial data exceeds 80 characters (before \n)
           // Report line overflow error.
           report_status_message(STATUS_OVERFLOW);
+        
         } else if (line[0] == 0) {
-          // Empty or comment line. For syncing purposes.
+          // Empty or comment line. For syncing purposes.    
           report_status_message(STATUS_OK);
+        
         } else if (line[0] == '$') {
           // Grbl '$' system command
           report_status_message(system_execute_line(line));
-        } else if (sys.state & (STATE_ALARM | STATE_JOG)) {
-          // Everything else is gcode. Block if in alarm or jog mode.
+        
+        } else if (sys.state & (STATE_ALARM | STATE_JOG)) { //Block if in alarm or jog mode.
+          // Everything else is gcode. 
           report_status_message(STATUS_SYSTEM_GC_LOCK);
+        
         } else {
           // Parse and execute g-code block.
           report_status_message(gc_execute_line(line));
@@ -95,7 +99,7 @@ void protocol_main_loop()
         line_flags = 0;
         char_counter = 0;
 
-      } else {
+      } else { //EOL hasn't occurred yet... add character to line
 
         if (line_flags) {
           // Throw away all (except EOL) comment characters and overflow characters.
@@ -409,7 +413,7 @@ void protocol_exec_rt_system()
 }
 
 
-// Handles Grbl system suspend procedures, such as feed hold.
+// Handles Grbl system suspend procedures, such as feed hold ('!')
 // The system will enter this loop, create local variables for suspend tasks, and return to
 // whatever function that invoked the suspend, such that Grbl resumes normal operation.
 static void protocol_exec_rt_suspend()

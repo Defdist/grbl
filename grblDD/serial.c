@@ -122,7 +122,7 @@ ISR(SERIAL_UDRE)
 }
 
 
-// Fetches the first byte in the serial read buffer. Called by main program.
+// Returns the first byte in the stored ring serial_rx_buffer. Called by main program.
 uint8_t serial_read()
 {
   uint8_t tail = serial_rx_buffer_tail; // Temporary serial_rx_buffer_tail (to optimize for volatile)

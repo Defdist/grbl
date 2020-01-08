@@ -78,14 +78,16 @@ uint8_t system_execute_line(char *line)
   uint8_t char_counter = 1;
   uint8_t helper_var = 0; // Helper variable
   float parameter, value;
-  switch( line[char_counter] ) {
-    case 0 : report_grbl_help(); break;
-    case 'J' : // Jogging
+  switch( line[char_counter] ) { //read second character (since we know first is '$')
+    case 0 : report_grbl_help(); break; //entire line is '$' (protocol_main_loop() tacks '0' at end of each line)
+
+    case 'J' : // $J = Jogging
       // Execute only if in IDLE or JOG states.
       if (sys.state != STATE_IDLE && sys.state != STATE_JOG) { return(STATUS_IDLE_ERROR); }
       if(line[2] != '=') { return(STATUS_INVALID_STATEMENT); }
       return(gc_execute_line(line)); // NOTE: $J= is ignored inside g-code parser and used to detect jog motions.
       break;
+
     case '$': case 'G': case 'C': case 'X':
       if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
       switch( line[1] ) {
@@ -93,11 +95,11 @@ uint8_t system_execute_line(char *line)
           if ( sys.state & (STATE_CYCLE | STATE_HOLD) ) { return(STATUS_IDLE_ERROR); } // Block during cycle. Takes too long to print.
           else { report_grbl_settings(); }
           break;
-        case 'G' : // Prints gcode parser state
+        case 'G' : // $G = Prints gcode parser state
           // TODO: Move this to realtime commands for GUIs to request this data during suspend-state.
           report_gcode_modes();
           break;
-        case 'C' : // Set check g-code mode [IDLE/CHECK]
+        case 'C' : // $C = Set check g-code mode [IDLE/CHECK]
           // Perform reset when toggling off. Check g-code mode should only work if Grbl
           // is idle and ready, regardless of alarm locks. This is mainly to keep things
           // simple and consistent.
@@ -110,7 +112,7 @@ uint8_t system_execute_line(char *line)
             report_feedback_message(MESSAGE_ENABLED);
           }
           break;
-        case 'X' : // Disable alarm lock [ALARM]
+        case 'X' : // $X = Disable alarm lock [ALARM]
           if (sys.state == STATE_ALARM) {
             report_feedback_message(MESSAGE_ALARM_UNLOCK);
             sys.state = STATE_IDLE;
@@ -119,25 +121,27 @@ uint8_t system_execute_line(char *line)
           break;
       }
       break;
-    default :
+
+    default : //all other '$___' commands
       // Block any system command that requires the state as IDLE/ALARM. (i.e. EEPROM, homing)
       if ( !(sys.state == STATE_IDLE || sys.state == STATE_ALARM) ) { return(STATUS_IDLE_ERROR); }
       switch( line[1] ) {
-        case '#' : // Print Grbl NGC parameters
+        case '#' : // $# = Print Grbl NGC parameters
           if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
           else { report_ngc_parameters(); }
           break;
-        case 'H' : // Perform homing cycle [IDLE/ALARM]
-          if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return(STATUS_SETTING_DISABLED); }
-          sys.state = STATE_HOMING; // Set system state variable
-          if (line[2] == 0) {
+        case 'H' : // $H = Perform homing cycle [IDLE/ALARM]
+          if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return(STATUS_SETTING_DISABLED); }          
+          if (line[2] == 0) { // entire line is '$H' (i.e. not $HX)
+            sys.state = STATE_HOMING; // Set system state variable
             mc_homing_cycle(HOMING_CYCLE_ALL);
           #ifdef HOMING_SINGLE_AXIS_COMMANDS
             } else if (line[3] == 0) {
+              sys.state = STATE_HOMING; // Set system state variable
               switch (line[2]) {
-                case 'X': mc_homing_cycle(HOMING_CYCLE_X); break;
-                case 'Y': mc_homing_cycle(HOMING_CYCLE_Y); break;
-                case 'Z': mc_homing_cycle(HOMING_CYCLE_Z); break;
+                case 'X': mc_homing_cycle(HOMING_CYCLE_X); break; // $HX
+                case 'Y': mc_homing_cycle(HOMING_CYCLE_Y); break; // $HY
+                case 'Z': mc_homing_cycle(HOMING_CYCLE_Z); break; // $HZ
                 default: return(STATUS_INVALID_STATEMENT);
               }
           #endif

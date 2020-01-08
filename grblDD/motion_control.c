@@ -199,6 +199,10 @@ void mc_dwell(float seconds)
   delay_sec(seconds, DELAY_MODE_DWELL);
 }
 
+void mc_level_table(uint8_t cyclemask)
+{
+  
+}
 
 // Perform homing cycle to locate and set machine zero. Only '$H' executes this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before

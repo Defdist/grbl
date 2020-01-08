@@ -25,8 +25,8 @@ A standards-compliant g-code controller that will look up to 16 motions into the
   **Optional: On a Mac, to prevent having to manually perform this step each time grblDD is updated, create a symbolic link (using Terminal):  
   ln -s /path/to/original /path/to/symbolic/link  
   where:  
-  -"/path/to/original" is wherever your git directory cloned to
-  -"/path/to/symbolic/link" is the Arduino libraries folder (~/Documents/Arduino/libraries)
+  -"/path/to/original" is wherever your git directory cloned to  
+  -"/path/to/symbolic/link" is the Arduino libraries folder (~/Documents/Arduino/libraries)  
   Example:  
   ln -s /Users/jts/Documents/GitHub/grbl/grblDD /Users/jts/Documents/Arduino/libraries  
 
