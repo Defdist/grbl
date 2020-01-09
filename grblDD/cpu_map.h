@@ -71,9 +71,8 @@
     #define Y_LIMIT_BIT      2  // Uno Digital Pin 10
     #define Z_LIMIT_BIT	     4  // Uno Digital Pin 12
 
-    #if !defined(ENABLE_DUAL_AXIS)
-      #define LIMIT_MASK     ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
-    #endif
+    #define LIMIT_MASK     ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
+
     #define LIMIT_INT        PCIE0  // Pin change interrupt enable pin
     #define LIMIT_INT_vect   PCINT0_vect
     #define LIMIT_PCMSK      PCMSK0 // Pin change interrupt register
@@ -91,120 +90,39 @@
     #define PROBE_BIT       5  // Uno Analog Pin 5
     #define PROBE_MASK      (1<<PROBE_BIT)
 
-    #if !defined(ENABLE_DUAL_AXIS)
-
-      // Define spindle enable and spindle direction output pins.
-      #define SPINDLE_ENABLE_DDR    DDRB
-      #define SPINDLE_ENABLE_PORT   PORTB
-      #define SPINDLE_ENABLE_BIT    3  // Uno Digital Pin 11
-      #define SPINDLE_DIRECTION_DDR   DDRB
-      #define SPINDLE_DIRECTION_PORT  PORTB
-      #define SPINDLE_DIRECTION_BIT   5  // Uno Digital Pin 13 (NOTE: D13 can't be pulled-high input due to LED.)
+    // Define spindle enable and spindle direction output pins.
+    #define SPINDLE_ENABLE_DDR    DDRB
+    #define SPINDLE_ENABLE_PORT   PORTB
+    #define SPINDLE_ENABLE_BIT    3  // Uno Digital Pin 11
+    #define SPINDLE_DIRECTION_DDR   DDRB
+    #define SPINDLE_DIRECTION_PORT  PORTB
+    #define SPINDLE_DIRECTION_BIT   5  // Uno Digital Pin 13 (NOTE: D13 can't be pulled-high input due to LED.)
 
 
-      // Variable spindle configuration below. Do not change unless you know what you are doing.
-      // NOTE: Only used when variable spindle is enabled.
-      #define SPINDLE_PWM_MAX_VALUE     255 // Don't change. 328p fast PWM mode fixes top value as 255.
-      #ifndef SPINDLE_PWM_MIN_VALUE
-        #define SPINDLE_PWM_MIN_VALUE   1   // Must be greater than zero.
-      #endif
-      #define SPINDLE_PWM_OFF_VALUE     0
-      #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)
-      #define SPINDLE_TCCRA_REGISTER    TCCR2A
-      #define SPINDLE_TCCRB_REGISTER    TCCR2B
-      #define SPINDLE_OCR_REGISTER      OCR2A
-      #define SPINDLE_COMB_BIT          COM2A1
-
-      // Prescaled, 8-bit Fast PWM mode.
-      #define SPINDLE_TCCRA_INIT_MASK   ((1<<WGM20) | (1<<WGM21))  // Configures fast PWM mode.
-      // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS20)               // Disable prescaler -> 62.5kHz
-      #define SPINDLE_TCCRB_INIT_MASK   (1<<CS21)               // 1/8 prescaler -> 7.8kHz (Used in v0.9) //JTS enabled
-      // #define SPINDLE_TCCRB_INIT_MASK   ((1<<CS21) | (1<<CS20)) // 1/32 prescaler -> 1.96kHz
-      //#define SPINDLE_TCCRB_INIT_MASK      (1<<CS22)               // 1/64 prescaler -> 0.98kHz (J-tech laser)
-
-      // NOTE: On the 328p, these must be the same as the SPINDLE_ENABLE settings.
-      #define SPINDLE_PWM_DDR   DDRB
-      #define SPINDLE_PWM_PORT  PORTB
-      #define SPINDLE_PWM_BIT   3    // Uno Digital Pin 11
-    
-    #else
-
-      // Dual axis feature requires an independent step pulse pin to operate. The independent direction pin is not 
-      // absolutely necessary but facilitates easy direction inverting with a Grbl $$ setting. These pins replace 
-      // the spindle direction pin.
-
-      #ifdef DUAL_AXIS_CONFIG_PROTONEER_V3_51
-        // NOTE: Step pulse and direction pins may be on any port and output pin.
-        #define STEP_DDR_DUAL       DDRC
-        #define STEP_PORT_DUAL      PORTC
-        #define DUAL_STEP_BIT       4  // Uno Analog Pin 4
-        #define STEP_MASK_DUAL      ((1<<DUAL_STEP_BIT))
-        #define DIRECTION_DDR_DUAL  DDRC
-        #define DIRECTION_PORT_DUAL PORTC
-        #define DUAL_DIRECTION_BIT  3  // Uno Analog Pin 3
-        #define DIRECTION_MASK_DUAL ((1<<DUAL_DIRECTION_BIT))
-
-        // NOTE: Dual axis limit is shared with the z-axis limit pin by default. Pin used must be on the same port
-        // as other limit pins.
-        #define DUAL_LIMIT_BIT    Z_LIMIT_BIT
-        #define LIMIT_MASK        ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)|(1<<DUAL_LIMIT_BIT))
-
-        // Define spindle enable output pin.
-        // NOTE: Spindle enable moved from D12 to A3. Spindle direction pin is removed.
-        #define SPINDLE_ENABLE_DDR    DDRB
-        #define SPINDLE_ENABLE_PORT   PORTB
-        #define SPINDLE_ENABLE_BIT    3  // Uno Digital Pin 11
-
-        // Variable spindle configuration below. Do not change unless you know what you are doing.
-        // NOTE: Only used when variable spindle is enabled.
-        #define SPINDLE_PWM_MAX_VALUE     255 // Don't change. 328p fast PWM mode fixes top value as 255.
-        #ifndef SPINDLE_PWM_MIN_VALUE
-          #define SPINDLE_PWM_MIN_VALUE   1   // Must be greater than zero.
-        #endif
-        #define SPINDLE_PWM_OFF_VALUE     0
-        #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)
-        #define SPINDLE_TCCRA_REGISTER    TCCR2A
-        #define SPINDLE_TCCRB_REGISTER    TCCR2B
-        #define SPINDLE_OCR_REGISTER      OCR2A
-        #define SPINDLE_COMB_BIT          COM2A1
-
-        // Prescaled, 8-bit Fast PWM mode.
-        #define SPINDLE_TCCRA_INIT_MASK   ((1<<WGM20) | (1<<WGM21))  // Configures fast PWM mode.
-        // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS20)               // Disable prescaler -> 62.5kHz
-        // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS21)               // 1/8 prescaler -> 7.8kHz (Used in v0.9)
-        // #define SPINDLE_TCCRB_INIT_MASK   ((1<<CS21) | (1<<CS20)) // 1/32 prescaler -> 1.96kHz
-        #define SPINDLE_TCCRB_INIT_MASK      (1<<CS22)               // 1/64 prescaler -> 0.98kHz (J-tech laser)
-
-        // NOTE: On the 328p, these must be the same as the SPINDLE_ENABLE settings.
-        #define SPINDLE_PWM_DDR   DDRB
-        #define SPINDLE_PWM_PORT  PORTB
-        #define SPINDLE_PWM_BIT   3    // Uno Digital Pin 11
-      #endif
-
-      // NOTE: Variable spindle not supported with this shield.
-      #ifdef DUAL_AXIS_CONFIG_CNC_SHIELD_CLONE
-        // NOTE: Step pulse and direction pins may be on any port and output pin.
-        #define STEP_DDR_DUAL       DDRB
-        #define STEP_PORT_DUAL      PORTB
-        #define DUAL_STEP_BIT       4  // Uno Digital Pin 12
-        #define STEP_MASK_DUAL      ((1<<DUAL_STEP_BIT))
-        #define DIRECTION_DDR_DUAL  DDRB
-        #define DIRECTION_PORT_DUAL PORTB
-        #define DUAL_DIRECTION_BIT  5  // Uno Digital Pin 13
-        #define DIRECTION_MASK_DUAL ((1<<DUAL_DIRECTION_BIT))
-
-        // NOTE: Dual axis limit is shared with the z-axis limit pin by default.
-        #define DUAL_LIMIT_BIT    Z_LIMIT_BIT
-        #define LIMIT_MASK        ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)|(1<<DUAL_LIMIT_BIT))
-
-        // Define spindle enable output pin.
-        // NOTE: Spindle enable moved from D12 to A3. Spindle direction pin is removed.
-        #define SPINDLE_ENABLE_DDR    DDRC
-        #define SPINDLE_ENABLE_PORT   PORTC
-        #define SPINDLE_ENABLE_BIT    3  // Uno Analog Pin 3
-      #endif
-
+    // Variable spindle configuration below. Do not change unless you know what you are doing.
+    // NOTE: Only used when variable spindle is enabled.
+    #define SPINDLE_PWM_MAX_VALUE     255 // Don't change. 328p fast PWM mode fixes top value as 255.
+    #ifndef SPINDLE_PWM_MIN_VALUE
+      #define SPINDLE_PWM_MIN_VALUE   1   // Must be greater than zero.
     #endif
+    #define SPINDLE_PWM_OFF_VALUE     0
+    #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)
+    #define SPINDLE_TCCRA_REGISTER    TCCR2A
+    #define SPINDLE_TCCRB_REGISTER    TCCR2B
+    #define SPINDLE_OCR_REGISTER      OCR2A
+    #define SPINDLE_COMB_BIT          COM2A1
+
+    // Prescaled, 8-bit Fast PWM mode.
+    #define SPINDLE_TCCRA_INIT_MASK   ((1<<WGM20) | (1<<WGM21))  // Configures fast PWM mode.
+    // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS20)               // Disable prescaler -> 62.5kHz
+    #define SPINDLE_TCCRB_INIT_MASK   (1<<CS21)               // 1/8 prescaler -> 7.8kHz (Used in v0.9) //JTS enabled
+    // #define SPINDLE_TCCRB_INIT_MASK   ((1<<CS21) | (1<<CS20)) // 1/32 prescaler -> 1.96kHz
+    //#define SPINDLE_TCCRB_INIT_MASK      (1<<CS22)               // 1/64 prescaler -> 0.98kHz (J-tech laser)
+
+    // NOTE: On the 328p, these must be the same as the SPINDLE_ENABLE settings.
+    #define SPINDLE_PWM_DDR   DDRB
+    #define SPINDLE_PWM_PORT  PORTB
+    #define SPINDLE_PWM_BIT   3    // Uno Digital Pin 11
 
   #endif
 

@@ -30,14 +30,6 @@
   #define HOMING_AXIS_LOCATE_SCALAR  5.0 // Must be > 1 to ensure limit switch is cleared.
 #endif
 
-#ifdef ENABLE_DUAL_AXIS
-  // Flags for dual axis async limit trigger check.
-  #define DUAL_AXIS_CHECK_DISABLE     0  // Must be zero
-  #define DUAL_AXIS_CHECK_ENABLE      bit(0)
-  #define DUAL_AXIS_CHECK_TRIGGER_1   bit(1)
-  #define DUAL_AXIS_CHECK_TRIGGER_2   bit(2)
-#endif
-
 void limits_init()
 {
   LIMIT_DDR &= ~(LIMIT_MASK); // Set as input pins
@@ -78,9 +70,6 @@ uint8_t limits_get_state()
     for (idx=0; idx<N_AXIS; idx++) {
       if (pin & get_limit_pin_mask(idx)) { limit_state |= (1 << idx); }
     }
-    #ifdef ENABLE_DUAL_AXIS
-      if (pin & (1<<DUAL_LIMIT_BIT)) { limit_state |= (1 << N_AXIS); }
-    #endif
   }
   return(limit_state);
 }
@@ -143,20 +132,6 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
   // Initialize variables used for homing computations.
   uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE+1);  //number of times to locate limit switch
   uint8_t step_pin[N_AXIS];//the physical port pin for each axis' stepper
-  #ifdef ENABLE_DUAL_AXIS
-    uint8_t step_pin_dual;
-    uint8_t dual_axis_async_check;
-    int32_t dual_trigger_position;
-    #if (DUAL_AXIS_SELECT == X_AXIS)
-      float fail_distance = (-DUAL_AXIS_HOMING_FAIL_AXIS_LENGTH_PERCENT/100.0)*settings.max_travel[Y_AXIS];
-    #else
-      float fail_distance = (-DUAL_AXIS_HOMING_FAIL_AXIS_LENGTH_PERCENT/100.0)*settings.max_travel[X_AXIS];
-    #endif
-    fail_distance = min(fail_distance, DUAL_AXIS_HOMING_FAIL_DISTANCE_MAX);
-    fail_distance = max(fail_distance, DUAL_AXIS_HOMING_FAIL_DISTANCE_MIN);
-    int32_t dual_fail_distance = trunc(fail_distance*settings.steps_per_mm[DUAL_AXIS_SELECT]);
-    // int32_t dual_fail_distance = trunc((DUAL_AXIS_HOMING_TRIGGER_FAIL_DISTANCE)*settings.steps_per_mm[DUAL_AXIS_SELECT]);
-  #endif
   float target[N_AXIS]; //target[3];
   float max_travel = 0.0; //stored as a negative value
   uint8_t idx;
@@ -168,9 +143,6 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
       max_travel = max(max_travel,(-HOMING_AXIS_SEARCH_SCALAR)*settings.max_travel[idx]);
     }
   }
-  #ifdef ENABLE_DUAL_AXIS//JTS2do here's where we step second stepper
-    step_pin_dual = (1<<DUAL_STEP_BIT);
-  #endif
 
   // Set search mode with approach at seek rate to quickly engage the specified cycle_mask limit switches.
   bool approach = true;
@@ -186,11 +158,6 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
 
     // Initialize and declare variables needed for homing routine.
     axislock = 0;
-    #ifdef ENABLE_DUAL_AXIS
-      sys.homing_axis_lock_dual = 0;
-      dual_trigger_position = 0;
-      dual_axis_async_check = DUAL_AXIS_CHECK_DISABLE; //=0
-    #endif
     n_active_axis = 0;
     for (idx=0; idx<N_AXIS; idx++) {
       // Set target location for active axes and setup computation for homing rate.
@@ -209,11 +176,7 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
         }
         // Apply axislock to the step port pins active in this cycle.
         axislock |= step_pin[idx]; //bitmask: '1' = axis enabled, '0' = locked
-        #ifdef ENABLE_DUAL_AXIS
-          if (idx == DUAL_AXIS_SELECT) { sys.homing_axis_lock_dual = step_pin_dual; }
-        #endif
       }
-
     }
     homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Scale so individual axes all move at homing rate.
     sys.homing_axis_lock = axislock;  //bitmask: '1' = axis enabled, '0' = locked
@@ -225,7 +188,7 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
     sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute homing motion and clear existing flags.
     st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
     st_wake_up(); // Enable steppers
-    do {  //Initiate motion
+    do {  //Initiate motion (move towards limit switch on enabled axis/axes)
       if (approach) {
         // Check limit state. Lock out cycle axes when they change.
         limit_state = limits_get_state(); //bitmask: true if limit switch tripped
@@ -233,41 +196,11 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
           if (axislock & step_pin[idx]) { //if axis is enabled 
             if (limit_state & (1 << idx)) { //if limit switch for this axis is tripped
               axislock &= ~(step_pin[idx]); //disable this axis
-              #ifdef ENABLE_DUAL_AXIS
-                if (idx == DUAL_AXIS_SELECT) { dual_axis_async_check |= DUAL_AXIS_CHECK_TRIGGER_1; }
-              #endif
             }
           }
         }
         sys.homing_axis_lock = axislock; //update which axes are still enabled
-        #ifdef ENABLE_DUAL_AXIS
-          if (sys.homing_axis_lock_dual) { // NOTE: Only true when homing dual axis.
-            if (limit_state & (1 << N_AXIS)) { 
-              sys.homing_axis_lock_dual = 0;
-              dual_axis_async_check |= DUAL_AXIS_CHECK_TRIGGER_2;
-            }
-          }
-          
-          // When first dual axis limit triggers, record position and begin checking distance until other limit triggers. Bail upon failure.
-          if (dual_axis_async_check) {
-            if (dual_axis_async_check & DUAL_AXIS_CHECK_ENABLE) {
-              if (( dual_axis_async_check &  (DUAL_AXIS_CHECK_TRIGGER_1 | DUAL_AXIS_CHECK_TRIGGER_2)) == (DUAL_AXIS_CHECK_TRIGGER_1 | DUAL_AXIS_CHECK_TRIGGER_2)) {
-                dual_axis_async_check = DUAL_AXIS_CHECK_DISABLE;
-              } else {
-                if (abs(dual_trigger_position - sys_position[DUAL_AXIS_SELECT]) > dual_fail_distance) {
-                  system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_DUAL_APPROACH);
-                  mc_reset();
-                  protocol_execute_realtime();
-                  return;
-                }
-              }
-            } else {
-              dual_axis_async_check |= DUAL_AXIS_CHECK_ENABLE;
-              dual_trigger_position = sys_position[DUAL_AXIS_SELECT];
-            }
-          }
-        #endif
-      }
+      } //when this finishes, enabled axis/axes are sitting tripped on limit switch
 
       st_prep_buffer(); // Check and prep segment buffer. NOTE: Should take no longer than 200us.
 
@@ -290,12 +223,8 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
           break;
         }
       }
+    } while (STEP_MASK & axislock);
 
-    #ifdef ENABLE_DUAL_AXIS
-      } while ((STEP_MASK & axislock) || (sys.homing_axis_lock_dual));
-    #else
-      } while (STEP_MASK & axislock);
-    #endif
 
     st_reset(); // Immediately force kill steppers and reset step segment buffer.
     delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.

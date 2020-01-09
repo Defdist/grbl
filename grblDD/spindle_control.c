@@ -30,9 +30,6 @@ void spindle_init()
   SPINDLE_PWM_DDR |= (1<<SPINDLE_PWM_BIT); // Configure as PWM output pin.
   SPINDLE_TCCRA_REGISTER = SPINDLE_TCCRA_INIT_MASK; // Configure PWM output compare timer
   SPINDLE_TCCRB_REGISTER = SPINDLE_TCCRB_INIT_MASK;
-  #ifndef ENABLE_DUAL_AXIS
-    SPINDLE_DIRECTION_DDR |= (1<<SPINDLE_DIRECTION_BIT); // Configure as output pin.
-  #endif
   pwm_gradient = SPINDLE_PWM_RANGE/(settings.rpm_max-settings.rpm_min);
 
   spindle_stop();
@@ -42,12 +39,8 @@ void spindle_init()
 uint8_t spindle_get_state()
 {
   if (SPINDLE_TCCRA_REGISTER & (1<<SPINDLE_COMB_BIT)) { // Check if PWM is enabled.
-    #ifdef ENABLE_DUAL_AXIS
-      return(SPINDLE_STATE_CW);
-    #else
-      if (SPINDLE_DIRECTION_PORT & (1<<SPINDLE_DIRECTION_BIT)) { return(SPINDLE_STATE_CCW); }
-      else { return(SPINDLE_STATE_CW); }
-    #endif
+    if (SPINDLE_DIRECTION_PORT & (1<<SPINDLE_DIRECTION_BIT)) { return(SPINDLE_STATE_CCW); }
+    else { return(SPINDLE_STATE_CW); }
   }
   return(SPINDLE_STATE_DISABLE);
 }
@@ -113,10 +106,9 @@ void spindle_set_state(uint8_t state, float rpm)
   } 
   else
   {   
-    #if !defined(ENABLE_DUAL_AXIS)
-      if (state == SPINDLE_ENABLE_CW) {SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);} 
-      else {SPINDLE_DIRECTION_PORT |= (1<<SPINDLE_DIRECTION_BIT);}
-    #endif
+    if (state == SPINDLE_ENABLE_CW) {SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);} 
+    else {SPINDLE_DIRECTION_PORT |= (1<<SPINDLE_DIRECTION_BIT);}
+
     // NOTE: Assumes all calls to this function is when Grbl is not moving or must remain off.
     if (settings.flags & BITFLAG_LASER_MODE)
     { 

@@ -92,18 +92,6 @@
   #error "Override refresh must be greater than zero."
 #endif
 
-#if defined(ENABLE_DUAL_AXIS)
-  #if !((DUAL_AXIS_SELECT == X_AXIS) || (DUAL_AXIS_SELECT == Y_AXIS))
-    #error "Dual axis currently supports X or Y axes only."
-  #endif
-  #if defined(DUAL_AXIS_CONFIG_CNC_SHIELD_CLONE) && defined(DUAL_AXIS_CONFIG_PROTONEER_V3_51)
-    #error "More than one dual axis configuration found. Select one."
-  #endif
-  #if !defined(DUAL_AXIS_CONFIG_CNC_SHIELD_CLONE) && !defined(DUAL_AXIS_CONFIG_PROTONEER_V3_51)
-    #error "No supported dual axis configuration found. Select one."
-  #endif
-#endif
-
 // ---------------------------------------------------------------------------------------
 
 #endif
