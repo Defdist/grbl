@@ -199,7 +199,7 @@ void mc_dwell(float seconds)
   delay_sec(seconds, DELAY_MODE_DWELL);
 }
 
-void mc_level_table(uint8_t cyclemask)
+void mc_level_table()
 {
   
 }
@@ -207,19 +207,19 @@ void mc_level_table(uint8_t cyclemask)
 // Perform homing cycle to locate and set machine zero. Only $H,$HX,$HY,$HZ execute this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
 // executing the homing cycle. This prevents incorrect buffered plans after homing.
-void mc_homing_cycle(uint8_t cycle_mask)
+void mc_homing_cycle(uint8_t cycle_mask)//cycle_mask is either HOMING_CYCLE_ALL, HOMING_CYCLE_X/Y/Z
 {
   // Check and abort homing cycle, if hard limits are already enabled. Helps prevent problems
   // with machines with limits wired on both ends of travel to one limit pin.
   // TODO: Move the pin-specific LIMIT_PIN call to limits.c as a function.
 
-  limits_disable(); // Disable hard limits pin change register for cycle duration
+  limits_disable(); // Disable hard limits pin change interrupts for cycle duration
 
   // -------------------------------------------------------------------------------------
   // Perform homing routine. NOTE: Special motion case. Only system reset works.
   
   #ifdef HOMING_SINGLE_AXIS_COMMANDS
-    if (cycle_mask) { limits_go_home(cycle_mask); } // Perform homing cycle based on mask.
+    if (cycle_mask) { limits_go_home(cycle_mask); } // Perform $HX/$HY/$HZ homing cycle (but not $H).
     else
   #endif
   {

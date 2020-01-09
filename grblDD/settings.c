@@ -310,6 +310,7 @@ void settings_init() {
 
 
 // Returns step pin mask according to Grbl internal axis indexing.
+// Remaps internal axes (X=0 Y=1 Z=2) to physical pinout (X=D2 Y=D3 Z=D4)
 uint8_t get_step_pin_mask(uint8_t axis_idx)
 {
   if ( axis_idx == X_AXIS ) { return((1<<X_STEP_BIT)); }

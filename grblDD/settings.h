@@ -140,7 +140,7 @@ void settings_write_coord_data(uint8_t coord_select, float *coord_data);
 // Reads selected coordinate data from EEPROM
 uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data);
 
-// Returns the step pin mask according to Grbl's internal axis numbering
+// Returns the step pin mask according to Grbl's internal axis numbering (i.e. the physical pin location on the port)
 uint8_t get_step_pin_mask(uint8_t i);
 
 // Returns the direction pin mask according to Grbl's internal axis numbering

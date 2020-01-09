@@ -111,10 +111,12 @@ ISR(LIMIT_INT_vect) //Limit pin change interrupt process.
   }
 }
 
+// Levels X axis (dual steppers, dual limit switches)
 void limits_go_level(uint8_t cycle_mask)
 {
   
 }
+
 
 // Homes the specified cycle axes, sets the machine position, and performs a pull-off motion after
 // completing. Homing is a special motion case, which involves rapid uncontrolled stops to locate
@@ -123,13 +125,15 @@ void limits_go_level(uint8_t cycle_mask)
 // circumvent the processes for executing motions in normal operation.
 // NOTE: Only the abort realtime command can interrupt this process.
 // TODO: Move limit pin-specific calls to a general function for portability.
-void limits_go_home(uint8_t cycle_mask)
-{
+void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing cycle...
+{  //for $H: runs once for Z (HOMING_CYCLE0), then once for X&Y (HOMING_CYCLE_1).
+   //For $HX: HOMING_CYCLE_X=0, $HY: HOMING_CYCLE_Y=1, $HZ: HOMING_CYCLE_Z=2
   if (sys.abort) { return; } // Block if system reset has been issued.
 
   // Initialize plan data struct for homing motion. Spindle is disabled.
   plan_line_data_t plan_data;
-  plan_line_data_t *pl_data = &plan_data;
+  plan_line_data_t *pl_data = &plan_data; //The address of plan_data is written to "*pl_data" 
+                                          //"pl_data" is a pointer to structure "plan_data"
   memset(pl_data,0,sizeof(plan_line_data_t));
   pl_data->condition = (PL_COND_FLAG_SYSTEM_MOTION|PL_COND_FLAG_NO_FEED_OVERRIDE);
   #ifdef USE_LINE_NUMBERS
@@ -137,8 +141,8 @@ void limits_go_home(uint8_t cycle_mask)
   #endif
 
   // Initialize variables used for homing computations.
-  uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE+1);
-  uint8_t step_pin[N_AXIS];
+  uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE+1);  //number of times to locate limit switch
+  uint8_t step_pin[N_AXIS];//the physical port pin for each axis' stepper
   #ifdef ENABLE_DUAL_AXIS
     uint8_t step_pin_dual;
     uint8_t dual_axis_async_check;
@@ -153,38 +157,39 @@ void limits_go_home(uint8_t cycle_mask)
     int32_t dual_fail_distance = trunc(fail_distance*settings.steps_per_mm[DUAL_AXIS_SELECT]);
     // int32_t dual_fail_distance = trunc((DUAL_AXIS_HOMING_TRIGGER_FAIL_DISTANCE)*settings.steps_per_mm[DUAL_AXIS_SELECT]);
   #endif
-  float target[N_AXIS];
-  float max_travel = 0.0;
+  float target[N_AXIS]; //target[3];
+  float max_travel = 0.0; //stored as a negative value
   uint8_t idx;
   for (idx=0; idx<N_AXIS; idx++) {
-    // Initialize step pin masks
-    step_pin[idx] = get_step_pin_mask(idx);
-
-    if (bit_istrue(cycle_mask,bit(idx))) {
+    step_pin[idx] = get_step_pin_mask(idx); // Create step pin masks (the physical pin location on the port)
+    if (bit_istrue(cycle_mask,bit(idx))) { //If X/Y/Z axis is part of this homing cycle, set axis max travel
       // Set target based on max_travel setting. Ensure homing switches engaged with search scalar.
       // NOTE: settings.max_travel[] is stored as a negative value.
       max_travel = max(max_travel,(-HOMING_AXIS_SEARCH_SCALAR)*settings.max_travel[idx]);
     }
   }
-  #ifdef ENABLE_DUAL_AXIS
+  #ifdef ENABLE_DUAL_AXIS//JTS2do here's where we step second stepper
     step_pin_dual = (1<<DUAL_STEP_BIT);
   #endif
 
   // Set search mode with approach at seek rate to quickly engage the specified cycle_mask limit switches.
   bool approach = true;
   float homing_rate = settings.homing_seek_rate;
+  uint8_t limit_state; //tripped state of all limit switches
+  uint8_t axislock;
+  uint8_t n_active_axis;
 
-  uint8_t limit_state, axislock, n_active_axis;
-  do {
 
-    system_convert_array_steps_to_mpos(target,sys_position);
+  do { //
+
+    system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
 
     // Initialize and declare variables needed for homing routine.
     axislock = 0;
     #ifdef ENABLE_DUAL_AXIS
       sys.homing_axis_lock_dual = 0;
       dual_trigger_position = 0;
-      dual_axis_async_check = DUAL_AXIS_CHECK_DISABLE;
+      dual_axis_async_check = DUAL_AXIS_CHECK_DISABLE; //=0
     #endif
     n_active_axis = 0;
     for (idx=0; idx<N_AXIS; idx++) {
@@ -193,25 +198,25 @@ void limits_go_home(uint8_t cycle_mask)
         n_active_axis++;
         sys_position[idx] = 0;
 
-        // Set target direction based on cycle mask and homing cycle approach state.
+        // Set target position to either + or -, depending on limit switch location.
         // NOTE: This happens to compile smaller than any other implementation tried.
-        if (bit_istrue(settings.homing_dir_mask,bit(idx))) {
-          if (approach) { target[idx] = -max_travel; }
-          else { target[idx] = max_travel; }
+        if (bit_istrue(settings.homing_dir_mask,bit(idx))) { 
+          if (approach) { target[idx] = -max_travel; }  
+          else { target[idx] = max_travel; } 
         } else {
           if (approach) { target[idx] = max_travel; }
           else { target[idx] = -max_travel; }
         }
         // Apply axislock to the step port pins active in this cycle.
-        axislock |= step_pin[idx];
+        axislock |= step_pin[idx]; //bitmask: '1' = axis enabled, '0' = locked
         #ifdef ENABLE_DUAL_AXIS
           if (idx == DUAL_AXIS_SELECT) { sys.homing_axis_lock_dual = step_pin_dual; }
         #endif
       }
 
     }
-    homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Adjust so individual axes all move at homing rate.
-    sys.homing_axis_lock = axislock;
+    homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Scale so individual axes all move at homing rate.
+    sys.homing_axis_lock = axislock;  //bitmask: '1' = axis enabled, '0' = locked
 
     // Perform homing cycle. Planner buffer should be empty, as required to initiate the homing cycle.
     pl_data->feed_rate = homing_rate; // Set current homing rate.
@@ -219,22 +224,22 @@ void limits_go_home(uint8_t cycle_mask)
 
     sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute homing motion and clear existing flags.
     st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
-    st_wake_up(); // Initiate motion
-    do {
+    st_wake_up(); // Enable steppers
+    do {  //Initiate motion
       if (approach) {
         // Check limit state. Lock out cycle axes when they change.
-        limit_state = limits_get_state();
-        for (idx=0; idx<N_AXIS; idx++) {
-          if (axislock & step_pin[idx]) {
-            if (limit_state & (1 << idx)) { 
-              axislock &= ~(step_pin[idx]);
+        limit_state = limits_get_state(); //bitmask: true if limit switch tripped
+        for (idx=0; idx<N_AXIS; idx++) { //check each axis
+          if (axislock & step_pin[idx]) { //if axis is enabled 
+            if (limit_state & (1 << idx)) { //if limit switch for this axis is tripped
+              axislock &= ~(step_pin[idx]); //disable this axis
               #ifdef ENABLE_DUAL_AXIS
                 if (idx == DUAL_AXIS_SELECT) { dual_axis_async_check |= DUAL_AXIS_CHECK_TRIGGER_1; }
               #endif
             }
           }
         }
-        sys.homing_axis_lock = axislock;
+        sys.homing_axis_lock = axislock; //update which axes are still enabled
         #ifdef ENABLE_DUAL_AXIS
           if (sys.homing_axis_lock_dual) { // NOTE: Only true when homing dual axis.
             if (limit_state & (1 << N_AXIS)) { 

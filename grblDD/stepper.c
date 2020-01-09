@@ -209,8 +209,8 @@ static st_prep_t prep;
 void st_wake_up()
 {
   // Enable stepper drivers.
-  if(st_is_power_level_HIGH() ) {st_enable();} //only enable high power mode right before move
-  else {st_set_power_level('M');}//JTS don't change power level if set to HIGH.  
+  if(st_is_power_level_HIGH() ) {st_enable();} //enable high power mode (right before move)
+  else {st_set_power_level('M');}//steppers already enabled; set to medium power  
 
   // Initialize stepper output bits to ensure first ISR call does not step.
   st.step_outbits = step_port_invert_mask;

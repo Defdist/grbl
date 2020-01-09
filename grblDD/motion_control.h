@@ -48,7 +48,7 @@ void mc_arc(float *target, plan_line_data_t *pl_data, float *position, float *of
 void mc_dwell(float seconds);
 
 // Perform GG3 table level.  Uses factory calibration data and dual X limit switches.  Will not work on GG1/GG2.
-void mc_level_table(uint8_t cyclemask);
+void mc_level_table();
 
 // Perform homing cycle to locate machine zero. Requires limit switches.
 void mc_homing_cycle(uint8_t cycle_mask);
