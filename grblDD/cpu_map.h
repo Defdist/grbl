@@ -55,6 +55,15 @@
     #define STEPPERS_DISABLE_BIT    0  // Uno Digital Pin 8
     #define STEPPERS_DISABLE_MASK   (1<<STEPPERS_DISABLE_BIT)
 
+    // Define stepper X1 sleep/wake output pin
+    #define STEPPERS_X1_SLEEP_DDR  DDRC
+    #define STEPPERS_X1_SLEEP_PIN  PINC //1: awake, 0: sleeping
+    #define STEPPERS_X1_SLEEP_PORT PORTC
+    #define STEPPERS_X1_SLEEP_BIT  0 // Uno Pin A0
+    #define STEPPERS_X1_SLEEP_MASK (1<<STEPPERS_X1_SLEEP_BIT)
+
+
+
     //JTS Define Stepper Power Level (Uno pin A1)
     #define STEPPERS_POWER_DDR  DDRC
     #define STEPPERS_POWER_PIN  PINC
@@ -70,6 +79,12 @@
     #define X_LIMIT_BIT      1  // Uno Digital Pin 9
     #define Y_LIMIT_BIT      2  // Uno Digital Pin 10
     #define Z_LIMIT_BIT	     4  // Uno Digital Pin 12
+
+    #define LIMIT_X1_DDR     DDRC   
+    #define LIMIT_X1_PIN     PINC
+    #define LIMIT_X1_PORT    PORTC
+    #define LIMIT_X1_BIT     2 // Uno Pin A2
+    #define LIMIT_X1_MASK    (1<<LIMIT_X1_BIT)
 
     #define LIMIT_MASK     ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
 

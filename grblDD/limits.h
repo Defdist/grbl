@@ -29,19 +29,19 @@ void limits_init();
 // Disables hard limits.
 void limits_disable();
 
-// Returns limit state as a bit-wise uint8 variable.
+// Returns interrupt-capable (X2/Y/Z) limit switch states as a bit-wise uint8 variable.
 uint8_t limits_get_state();
 
-// Level X axis using stored calibration offset '$L'
-void limits_level_X();
-
-// Determine offset and store as 'square' '$S'
-void limits_X_is_level();
+// Returns X1 limit state.  Only used by autolevel.
+uint8_t limits_X1_get_state();
 
 // Perform one portion of the homing cycle based on the input settings.
 void limits_go_home(uint8_t cycle_mask);
 
 // Check for soft limit violations
 void limits_soft_check(float *target);
+
+// Returns delta position between X1 & X2 limit switch trippoints 
+int16_t limits_find_trip_delta_X1X2();
 
 #endif

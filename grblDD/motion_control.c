@@ -199,12 +199,34 @@ void mc_dwell(float seconds)
   delay_sec(seconds, DELAY_MODE_DWELL);
 }
 
-void mc_level_table()
+// Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
+void mc_autolevel_X()
 {
+  limits_disable(); //disable interrupts
+  int16_t delta_as_found = limits_find_trip_delta_X1X2();
+  int16_t delta_calibrated = 0;//read from EEPROM
   
+  stepper_X1_sleep();
+  //move delta_as_found - delta_calibrated; //move (only) stepper X2 to square table
+  stepper_X1_wake();
+
+  mc_homing_cycle(HOMING_CYCLE_X);
 }
 
-// Perform homing cycle to locate and set machine zero. Only $H,$HX,$HY,$HZ execute this command.
+
+// determine present X table offset and store into EEPROM calibration data
+void mc_X_is_level()
+{
+  limits_disable(); //disable interrupts
+  int16_t delta_as_found = limits_find_trip_delta_X1X2();
+  //store delta_X1X2 in EEPROM
+  
+  mc_homing_cycle(HOMING_CYCLE_X);
+
+}
+
+
+// Perform homing cycle to locate and set machine zero. Only $L,$S,$H,$HX,$HY,$HZ execute this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
 // executing the homing cycle. This prevents incorrect buffered plans after homing.
 void mc_homing_cycle(uint8_t cycle_mask)//cycle_mask is either HOMING_CYCLE_ALL, HOMING_CYCLE_X/Y/Z

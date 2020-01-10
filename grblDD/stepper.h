@@ -33,6 +33,10 @@
 // Initialize and setup the stepper motor subsystem
 void stepper_init();
 
+void stepper_X1_sleep();
+
+void stepper_X1_wake();
+
 // Enable steppers, but cycle does not start unless called by motion control or realtime command.
 void st_wake_up();
 

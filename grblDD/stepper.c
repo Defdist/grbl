@@ -533,15 +533,16 @@ void st_reset()
 // Initialize and start the stepper motor subsystem
 void stepper_init()
 {
-  // Configure step and direction interface pins
+  // Configure step and direction interface pins to OUTPUT
   STEP_DDR |= STEP_MASK;
-  STEPPERS_DISABLE_DDR |= 1<<STEPPERS_DISABLE_BIT;
+  STEPPERS_DISABLE_DDR |= (1<<STEPPERS_DISABLE_BIT);
   DIRECTION_DDR |= DIRECTION_MASK;
 
-  //wake up stepper X1
+  //wake up stepper X1 (it's still disabled, see next line)
   //X1 shares the enable pin that X2/Y/Z are connected to, but has a separate sleep pin
-  //This is used to disable X1 when squaring X axis
-  
+  //X1 is only put to sleep when squaring X axis
+  STEPPERS_X1_SLEEP_DDR  |= STEPPERS_X1_SLEEP_MASK; //set pin as output
+  stepper_X1_wake();
   
   // Configure Timer 1: Stepper Driver Interrupt
   TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC
@@ -561,6 +562,17 @@ void stepper_init()
   #endif
 }
 
+//puts stepper X1 to sleep.  Used to level X axis
+void stepper_X1_sleep()
+{
+  STEPPERS_X1_SLEEP_PORT &= ~(STEPPERS_X1_SLEEP_MASK);
+}
+
+//wakes up stepper X1 (so it can move)
+void stepper_X1_wake()
+{
+  STEPPERS_X1_SLEEP_PORT |= STEPPERS_X1_SLEEP_MASK; //set sleep pin high (awake)
+}
 
 // Called by planner_recalculate() when the executing block is updated by the new plan.
 void st_update_plan_block_parameters()

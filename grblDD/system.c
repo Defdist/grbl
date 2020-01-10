@@ -130,6 +130,7 @@ uint8_t system_execute_line(char *line)
           if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
           else { report_ngc_parameters(); }
           break;
+
         case 'H' : // $H = Perform homing cycle [IDLE/ALARM]
           if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return(STATUS_SETTING_DISABLED); }          
           if (line[2] == 0) { // entire line is '$H' (i.e. not $HX)
@@ -152,10 +153,24 @@ uint8_t system_execute_line(char *line)
             if (line[2] == 0) { system_execute_startup(line); }
           }
           break;
+
+        case 'L' : // $L = autolevel X table using offset from EEPROM
+          sys.state = STATE_HOMING; // Set system state variable
+          if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
+          else {mc_autolevel_X();}
+          break;
+
+        case 'Q' : // $Q = Find X offset and store in EEPROM
+          sys.state = STATE_HOMING; // Set system state variable
+          if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
+          else {mc_X_is_level();}
+          break;
+
         case 'S' : // $SLP = Puts Grbl to sleep [IDLE/ALARM]
           if ((line[2] != 'L') || (line[3] != 'P') || (line[4] != 0)) { return(STATUS_INVALID_STATEMENT); }
           system_set_exec_state_flag(EXEC_SLEEP); // Set to execute sleep mode immediately
           break;
+
         case 'I' : // $I = Print or store build info. [IDLE/ALARM]
           if ( line[++char_counter] == 0 ) {
             settings_read_build_info(line);
@@ -171,6 +186,7 @@ uint8_t system_execute_line(char *line)
           #endif
           }
           break;
+
         case 'R' : // $RST = Restore defaults [IDLE/ALARM]
           if ((line[2] != 'S') || (line[3] != 'T') || (line[4] != '=') || (line[6] != 0)) { return(STATUS_INVALID_STATEMENT); }
           switch (line[5]) {
@@ -188,6 +204,7 @@ uint8_t system_execute_line(char *line)
           report_feedback_message(MESSAGE_RESTORE_DEFAULTS);
           mc_reset(); // Force reset to ensure settings are initialized correctly.
           break;
+
         case 'N' : // $N = Startup lines. [IDLE/ALARM]
           if ( line[++char_counter] == 0 ) { // Print startup lines
             for (helper_var=0; helper_var < N_STARTUP_LINE; helper_var++) {
@@ -203,6 +220,7 @@ uint8_t system_execute_line(char *line)
             helper_var = true;  // Set helper_var to flag storing method.
             // No break. Continues into default: to read remaining command characters.
           }
+
         default :  // $ or $N, followed by number.  Store settings [IDLE/ALARM]
           if(!read_float(line, &char_counter, &parameter)) { return(STATUS_BAD_NUMBER_FORMAT); } //remaining line must be a number
           if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
