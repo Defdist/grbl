@@ -98,9 +98,14 @@
 // #define HOMING_CYCLE_2                         // OPTIONAL: Uncomment and add axes mask to enable
 
 // Number of homing cycles performed after when the machine initially jogs to limit switches.
-// This help in preventing overshoot and should improve repeatability. This value should be one or
-// greater.
-#define N_HOMING_LOCATE_CYCLE 2 // Integer (1-128)
+// This help in preventing overshoot and should improve repeatability. This value should be two or
+// greater, because the first locating cycle is fast.
+#define N_HOMING_LOCATE_CYCLE 2 // Integer (2-128)
+
+// Define the distance to move each axis away from limit switches after first approach.
+// Make this distance large enough that the limit switch is guaranteed to reset (into its non-tripped state).
+// Increase this value if limit switches fail to reset after initial homing seek.
+#define DISTANCE_FIRST_PULLAWAY 5.0 // mm
 
 // Enables single axis homing commands. $HX, $HY, and $HZ for X, Y, and Z-axis homing. The full homing 
 // cycle is still invoked by the $H command. This is disabled by default. It's here only to address

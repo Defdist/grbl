@@ -202,6 +202,7 @@ void mc_dwell(float seconds)
 // Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
 void mc_autolevel_X()
 {
+  mc_homing_cycle(HOMING_CYCLE_X);
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
   int16_t delta_calibrated = 0;//read from EEPROM
@@ -217,6 +218,7 @@ void mc_autolevel_X()
 // determine present X table offset and store into EEPROM calibration data
 void mc_X_is_level()
 {
+  mc_homing_cycle(HOMING_CYCLE_X);
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
   //store delta_X1X2 in EEPROM

@@ -158,7 +158,6 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
   uint8_t axislock;
   uint8_t n_active_axis;
 
-
   do { //runs once for each stepper direction change during homing cycle
     system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
 
@@ -235,7 +234,6 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
         }
       }
     } while (STEP_MASK & axislock); //keep moving towards limit switches as long as at least one axis hasn't hit limit switch
-    // When loop finis
 
     st_reset(); // Immediately force kill steppers and reset step segment buffer.
     delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
@@ -244,9 +242,17 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
     approach = !approach;
 
     // After first cycle, homing enters locating phase. Shorten search to pull-off distance.
-    if (approach) { 
-      max_travel = settings.homing_pulloff*HOMING_AXIS_LOCATE_SCALAR;
-      homing_rate = settings.homing_feed_rate; //fine
+    if (approach) {
+      if (n_cycle == 2*N_HOMING_LOCATE_CYCLE) { //2nd time we move towards.  Makeup initial pulloff
+        max_travel = settings.homing_pulloff*HOMING_AXIS_LOCATE_SCALAR + DISTANCE_FIRST_PULLAWAY;
+        homing_rate = settings.homing_seek_rate; //fine
+      } else { //3rd, 5th, 7th, etc times we move towards.
+        max_travel = settings.homing_pulloff*HOMING_AXIS_LOCATE_SCALAR;
+        homing_rate = settings.homing_feed_rate; //fine
+      }
+    } else if (n_cycle == 2*N_HOMING_LOCATE_CYCLE+1) {//1st time we move away.  Ensures limits untrip
+      max_travel = DISTANCE_FIRST_PULLAWAY;
+      homing_rate = settings.homing_seek_rate; //coarse
     } else {
       max_travel = settings.homing_pulloff;
       homing_rate = settings.homing_seek_rate; //coarse
@@ -305,7 +311,9 @@ void limits_soft_check(float *target)
 //move both steppers simultaneosly, noting when each limit switch trips
 int16_t limits_find_trip_delta_X1X2() 
 { 
-  const uint8_t PULLAWAY_DISTANCE = -10; //mm to pull away from limits 
+  if (sys.abort) { return; } // Block if system reset has been issued.
+  
+  const uint8_t PULLAWAY_DISTANCE = -10.0; //mm to pull away from limits 
   float target[N_AXIS]; //target[3]
 
   // Initialize plan data struct for homing motion. Spindle is disabled.
@@ -318,20 +326,30 @@ int16_t limits_find_trip_delta_X1X2()
     pl_data->line_number = HOMING_CYCLE_LINE_NUMBER;
   #endif
 
-  if (sys.abort) { return; } // Block if system reset has been issued.
-
   // move X away from limit switches to ensure X1 isn't already tripped
   system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
   sys_position[X_AXIS] = 0;
 
   if (bit_istrue(settings.homing_dir_mask,bit(X_AXIS)) ) { target[X_AXIS] = PULLAWAY_DISTANCE; } 
   else { target[X_AXIS] = (-PULLAWAY_DISTANCE); }
-  
+  sys.homing_axis_lock = get_step_pin_mask(X_AXIS); //enable X axis
+  pl_data->feed_rate = settings.homing_seek_rate; //move away quickly
+
   plan_buffer_line(target, pl_data); // Bypass mc_line(). Directly plan homing motion.
 
   sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute homing motion and clear existing flags.
   st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
   st_wake_up(); // Enable steppers
+  
+  do {
+    st_prep_buffer(); // Check and prep segment buffer
+  } while (0);
+
+
+  st_reset(); // Immediately force kill steppers and reset step segment buffer.
+  delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
+
+  //we've now moved 10 mm away
 
   system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
 
@@ -365,7 +383,7 @@ int16_t limits_find_trip_delta_X1X2()
     limit_X2_tripped = (limits_get_state() & (1<<X_AXIS));
     
     if(limit_X1_tripped && helper_X1) { //X1 just tripped
-      trip_position_X1 = //get position
+      trip_position_X1 = //get position current_position[idx]?
       helper_X1 = 0;
     }
 
@@ -376,23 +394,6 @@ int16_t limits_find_trip_delta_X1X2()
 
     st_prep_buffer(); // Check and prep segment buffer. NOTE: Should take no longer than 200us.
 
-    // Exit routines: No time to run protocol_execute_realtime() in this loop.
-    if (sys_rt_exec_state & (EXEC_RESET | EXEC_CYCLE_STOP)) {
-      uint8_t rt_exec = sys_rt_exec_state;
-      
-      // Homing failure condition: Reset issued during cycle.
-      if (rt_exec & EXEC_RESET) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_RESET); }
-
-      if (sys_rt_exec_alarm) {
-        mc_reset(); // Stop motors, if they are running.
-        protocol_execute_realtime();
-        return;
-      } else {
-        // Pull-off motion complete. Disable CYCLE_STOP from executing.
-        system_clear_exec_state_flag(EXEC_CYCLE_STOP);
-        break;
-      }
-    }
   } while (!(limit_X1_tripped && limit_X2_tripped)); //keep moving towards limit switches until both limits trip
 
   // X1 & X2 limit(s) have been located.

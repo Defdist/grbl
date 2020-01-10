@@ -60,7 +60,7 @@
   #define DEFAULT_HOMING_ENABLE 1
   #define DEFAULT_HOMING_DIR_MASK 1 // b0000001
   #define DEFAULT_HOMING_FINE_RATE 50.0 // mm/min
-  #define DEFAULT_HOMING_COARSE_RATE 2500.0 // mm/min
+  #define DEFAULT_HOMING_SEEK_RATE 2500.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 1 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 0.5 // mm
 #endif
