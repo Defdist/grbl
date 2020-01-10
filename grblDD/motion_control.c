@@ -200,30 +200,54 @@ void mc_dwell(float seconds)
 }
 
 // Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
-void mc_autolevel_X()
+void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is disabled
 {
-  mc_homing_cycle(HOMING_CYCLE_X);
+  mc_homing_cycle(HOMING_CYCLE_X); //find X2 limit switch
+
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
-  int16_t delta_calibrated = 0;//read from EEPROM
+  printFloat_CoordValue(delta_as_found);
   
-  stepper_X1_sleep();
+  protocol_execute_realtime(); // Check for reset and set system abort.
+  if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
+
+  // Sync gcode parser and planner positions to homed position.
+  gc_sync_position();
+  plan_sync_position();
+
+  int16_t delta_calibrated = 1001;//read from EEPROM
+
+  //move away from steppers
+  //gc_execute_line(G91 G1 X+10 F50);
+  //stepper_X1_sleep();
   //move delta_as_found - delta_calibrated; //move (only) stepper X2 to square table
-  stepper_X1_wake();
+  //stepper_X1_wake();
+
+  limits_enable();
 
   mc_homing_cycle(HOMING_CYCLE_X);
 }
 
 
 // determine present X table offset and store into EEPROM calibration data
-void mc_X_is_level()
+void mc_X_is_level() //JTS2do this function is basically done, except we need to write EEPROM value
 {
   mc_homing_cycle(HOMING_CYCLE_X);
+
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
+  printFloat_CoordValue(delta_as_found);
+
+  protocol_execute_realtime(); // Check for reset and set system abort.
+  if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
+
+  // Sync gcode parser and planner positions to homed position.
+  gc_sync_position();
+  plan_sync_position();
+
   //store delta_X1X2 in EEPROM
   
-  mc_homing_cycle(HOMING_CYCLE_X);
+  mc_homing_cycle(HOMING_CYCLE_X); //cause we've ruined machine state
 
 }
 

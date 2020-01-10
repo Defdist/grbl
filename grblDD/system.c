@@ -158,12 +158,20 @@ uint8_t system_execute_line(char *line)
           sys.state = STATE_HOMING; // Set system state variable
           if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
           else {mc_autolevel_X();}
+          if (!sys.abort) {  // Execute startup scripts after successful homing.
+            sys.state = STATE_IDLE; // Set to IDLE when complete.
+            st_go_idle(); // Set steppers to the idle state before returning.
+          }
           break;
 
         case 'Q' : // $Q = Find X offset and store in EEPROM
           sys.state = STATE_HOMING; // Set system state variable
           if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
           else {mc_X_is_level();}
+          if (!sys.abort) {  // Execute startup scripts after successful homing.
+            sys.state = STATE_IDLE; // Set to IDLE when complete.
+            st_go_idle(); // Set steppers to the idle state before returning.
+          }
           break;
 
         case 'S' : // $SLP = Puts Grbl to sleep [IDLE/ALARM]
