@@ -77,14 +77,16 @@ uint8_t limits_get_state()
   return(limit_state);
 }
 
-//X1 limit switch is not in the same PORT as the interrupt limits.
-//This function should only be used during autolevel  
+//X1 limit switch is not in the same PORT as the interrupt limits, and cannot be a limit interrupt.
+//This function should only be used during autolevel.
 uint8_t limits_X1_get_state() //returns true if X1 limit is tripped
 {
-  uint8_t X1_pin_state = (LIMIT_X1_PIN & LIMIT_X1_MASK);  //read X1 pin (high or low)
+  uint8_t limit_state = 0;
+  uint8_t X1_pin_state = (LIMIT_X1_PIN & LIMIT_X1_MASK); //return only X1 pin state (high or low) from PORT
   if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { X1_pin_state ^= LIMIT_X1_MASK; }
-  if (X1_pin_state & LIMIT_X1_BIT) { return 1; } // limit X1 is tripped
-  else {return 0;} //limit X1 not tripped
+  if (X1_pin_state & LIMIT_X1_MASK) { limit_state = 1; } // limit X1 is tripped (regardless of logic level)
+  else { limit_state = 0; } //limit X1 not tripped (regardless of logic level; see BITFLAG_INVERT_LIMIT_PINS)
+  return(limit_state);
 }
 
 
@@ -241,19 +243,20 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
     // Reverse direction
     approach = !approach;
 
-    // After first cycle, homing enters locating phase. Shorten search to pull-off distance.
+    // After first approach, need to pull away far enough to ensure limit switches reset.
+    // After second approach, homing enters locating phase.
     if (approach) {
       if (n_cycle == 2*N_HOMING_LOCATE_CYCLE) { //2nd time we move towards.  Makeup initial pulloff
         max_travel = settings.homing_pulloff*HOMING_AXIS_LOCATE_SCALAR + DISTANCE_FIRST_PULLAWAY;
         homing_rate = settings.homing_seek_rate; //fine
-      } else { //3rd, 5th, 7th, etc times we move towards.
+      } else { //3rd, 4th, 5th, etc times we move towards.
         max_travel = settings.homing_pulloff*HOMING_AXIS_LOCATE_SCALAR;
         homing_rate = settings.homing_feed_rate; //fine
       }
     } else if (n_cycle == 2*N_HOMING_LOCATE_CYCLE+1) {//1st time we move away.  Ensures limits untrip
       max_travel = DISTANCE_FIRST_PULLAWAY;
       homing_rate = settings.homing_seek_rate; //coarse
-    } else {
+    } else { //2nd, 3rd, 4th, etc times we move away
       max_travel = settings.homing_pulloff;
       homing_rate = settings.homing_seek_rate; //coarse
     }
@@ -362,8 +365,10 @@ int16_t limits_find_trip_delta_X1X2()
   
   sys.homing_axis_lock = get_step_pin_mask(X_AXIS); //enable X axis
 
-  bool limit_X1_tripped = 0;
-  bool limit_X2_tripped = 0;
+  bool helper_X1 = 1; // false after X1 position logged
+  bool helper_X2 = 1; // false after X2 position logged
+  uint8_t limit_X1_tripped = 0;
+  uint8_t limit_X2_tripped = 0;
   int16_t trip_position_X1 = 0;
   int16_t trip_position_X2 = 0;
 
@@ -376,8 +381,7 @@ int16_t limits_find_trip_delta_X1X2()
   st_wake_up(); // Enable steppers
 
   do {  //move towards limits until both X1 & X2 have tripped
-    bool helper_X1 = 1; // false after X1 position logged
-    bool helper_X2 = 1; // false after X2 position logged
+
 
     limit_X1_tripped = limits_X1_get_state();
     limit_X2_tripped = (limits_get_state() & (1<<X_AXIS));
@@ -393,9 +397,9 @@ int16_t limits_find_trip_delta_X1X2()
     }
 
     st_prep_buffer(); // Check and prep segment buffer. NOTE: Should take no longer than 200us.
-
   } while (!(limit_X1_tripped && limit_X2_tripped)); //keep moving towards limit switches until both limits trip
 
+  printPgmString(PSTR("E"));
   // X1 & X2 limit(s) have been located.
 
   st_reset(); // Immediately force kill steppers and reset step segment buffer.

@@ -231,7 +231,7 @@ void mc_X_is_level()
 // Perform homing cycle to locate and set machine zero. Only $L,$S,$H,$HX,$HY,$HZ execute this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
 // executing the homing cycle. This prevents incorrect buffered plans after homing.
-void mc_homing_cycle(uint8_t cycle_mask)//cycle_mask is either HOMING_CYCLE_ALL, HOMING_CYCLE_X/Y/Z
+void mc_homing_cycle(uint8_t cycle_mask) // cycle_mask is: HOMING_CYCLE_ALL, HOMING_CYCLE_X/Y/Z
 {
   // Check and abort homing cycle, if hard limits are already enabled. Helps prevent problems
   // with machines with limits wired on both ends of travel to one limit pin.

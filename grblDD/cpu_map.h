@@ -79,14 +79,13 @@
     #define X_LIMIT_BIT      1  // Uno Digital Pin 9
     #define Y_LIMIT_BIT      2  // Uno Digital Pin 10
     #define Z_LIMIT_BIT	     4  // Uno Digital Pin 12
+    #define LIMIT_MASK     ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
 
     #define LIMIT_X1_DDR     DDRC   
     #define LIMIT_X1_PIN     PINC
     #define LIMIT_X1_PORT    PORTC
     #define LIMIT_X1_BIT     2 // Uno Pin A2
     #define LIMIT_X1_MASK    (1<<LIMIT_X1_BIT)
-
-    #define LIMIT_MASK     ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
 
     #define LIMIT_INT        PCIE0  // Pin change interrupt enable pin
     #define LIMIT_INT_vect   PCINT0_vect
