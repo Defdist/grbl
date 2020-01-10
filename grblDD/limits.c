@@ -100,14 +100,44 @@ ISR(LIMIT_INT_vect) //Limit pin change interrupt process.
   }
 }
 
-// Levels X axis (dual steppers, dual limit switches)
-void limits_go_level(uint8_t cycle_mask)
+
+// Levels X axis (dual steppers, dual limit switches) using calibration data
+void limits_level_X()
 {
-  
+  int16_t delta_as_found = limits_find_X_limit_delta();
+  int16_t delta_calibrated = //read from EEPROM
+
+  //move X down (10 mm?)
+  //disable X1 stepper
+  //move delta_as_found - delta_calibrated;
+  //enable X1 stepper
 }
 
 
-// Homes the specified cycle axes, sets the machine position, and performs a pull-off motion after
+// Tell grbl to determine existing offset between limit switches, then store that delta in EEPROM
+void limits_X_is_level()
+{
+  //x=limits_find_X_limit_delta()
+  //store x in EEPROM
+}
+
+
+uint8_t limits_find_X_limit_delta()
+{
+  //Home X axis (only)
+  //disable limit switch interrupts
+  //move X away from limit switches (10 mm?)
+  //move towards limit switches until one switch trips
+    //store current position for whichever switch tripped (either X1 or X2)
+  //keep moving towards limit switches until 2nd switch trips
+    //store current position for whichever switch tripped (either X1 or X2)
+  //move away from limit switches
+  //enable limit switch interrupts
+  //return p(X1)-p(X2)
+}
+
+
+// Home the specified cycle axes, set machine position, and perform a pull-off motion after
 // completing. Homing is a special motion case, which involves rapid uncontrolled stops to locate
 // the trigger point of the limit switches. The rapid stops are handled by a system level axis lock
 // mask, which prevents the stepper algorithm from executing step pulses. Homing motions typically
@@ -152,30 +182,30 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
   uint8_t n_active_axis;
 
 
-  do { //
-
+  do { //runs once for each stepper direction change during homing cycle
     system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
 
     // Initialize and declare variables needed for homing routine.
-    axislock = 0;
-    n_active_axis = 0;
+    axislock = 0; //bitmask: '1' = axis enabled, '0' = locked
+    n_active_axis = 0; //number of axes simultaneously home
     for (idx=0; idx<N_AXIS; idx++) {
       // Set target location for active axes and setup computation for homing rate.
       if (bit_istrue(cycle_mask,bit(idx))) {
         n_active_axis++;
         sys_position[idx] = 0;
 
-        // Set target position to either + or -, depending on limit switch location.
+        // For axis to home, set target position to either + or -, depending on limit switch location.
         // NOTE: This happens to compile smaller than any other implementation tried.
         if (bit_istrue(settings.homing_dir_mask,bit(idx))) { 
-          if (approach) { target[idx] = -max_travel; }  
+          if (approach) { target[idx] = -max_travel; }  // After initial pass, max_travel changes to pulloff distance
           else { target[idx] = max_travel; } 
         } else {
           if (approach) { target[idx] = max_travel; }
           else { target[idx] = -max_travel; }
         }
-        // Apply axislock to the step port pins active in this cycle.
-        axislock |= step_pin[idx]; //bitmask: '1' = axis enabled, '0' = locked
+
+        // bitmask that enables motion on a particular axis.  '1' = axis enabled, '0' = locked
+        axislock |= step_pin[idx];
       }
     }
     homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Scale so individual axes all move at homing rate.
@@ -188,8 +218,8 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
     sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute homing motion and clear existing flags.
     st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
     st_wake_up(); // Enable steppers
-    do {  //Initiate motion (move towards limit switch on enabled axis/axes)
-      if (approach) {
+    do { 
+      if (approach) {  // true when moving towards limit switch on enabled axis/axes
         // Check limit state. Lock out cycle axes when they change.
         limit_state = limits_get_state(); //bitmask: true if limit switch tripped
         for (idx=0; idx<N_AXIS; idx++) { //check each axis
@@ -207,12 +237,16 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
       // Exit routines: No time to run protocol_execute_realtime() in this loop.
       if (sys_rt_exec_state & (EXEC_RESET | EXEC_CYCLE_STOP)) {
         uint8_t rt_exec = sys_rt_exec_state;
+        
         // Homing failure condition: Reset issued during cycle.
         if (rt_exec & EXEC_RESET) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_RESET); }
+        
         // Homing failure condition: Limit switch still engaged after pull-off motion
         if (!approach && (limits_get_state() & cycle_mask)) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_PULLOFF); }
+        
         // Homing failure condition: Limit switch not found during approach.
         if (approach && (rt_exec & EXEC_CYCLE_STOP)) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_APPROACH); }
+        
         if (sys_rt_exec_alarm) {
           mc_reset(); // Stop motors, if they are running.
           protocol_execute_realtime();
@@ -223,27 +257,27 @@ void limits_go_home(uint8_t cycle_mask) //runs once for each part of the homing 
           break;
         }
       }
-    } while (STEP_MASK & axislock);
-
+    } while (STEP_MASK & axislock); //keep moving towards limit switches as long as at least one axis hasn't hit limit switch
+    // When loop finis
 
     st_reset(); // Immediately force kill steppers and reset step segment buffer.
     delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
 
-    // Reverse direction and reset homing rate for locate cycle(s).
+    // Reverse direction
     approach = !approach;
 
     // After first cycle, homing enters locating phase. Shorten search to pull-off distance.
-    if (approach) {
+    if (approach) { 
       max_travel = settings.homing_pulloff*HOMING_AXIS_LOCATE_SCALAR;
-      homing_rate = settings.homing_feed_rate;
+      homing_rate = settings.homing_feed_rate; //fine
     } else {
       max_travel = settings.homing_pulloff;
-      homing_rate = settings.homing_seek_rate;
+      homing_rate = settings.homing_seek_rate; //coarse
     }
-
   } while (n_cycle-- > 0);
+  //when this loop finishes, the homed axis/axes are positioned right where the limit switch tripped
 
-  // The active cycle axes should now be homed and machine limits have been located. By
+  // The active cycle axes should now be homed and machine limit(s) have been located. By
   // default, Grbl defines machine space as all negative, as do most CNCs. Since limit switches
   // can be on either side of an axes, check and set axes machine zero appropriately. Also,
   // set up pull-off maneuver from axes limit switches that have been homed. This provides

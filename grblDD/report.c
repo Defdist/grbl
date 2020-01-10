@@ -64,7 +64,7 @@ static void report_util_setting_string(uint8_t n) {
     case 21: printPgmString(PSTR("hardLim")); break;
     case 22: printPgmString(PSTR("homeEn")); break;
     case 23: printPgmString(PSTR("homeDirMask")); break;
-    case 24: printPgmString(PSTR("homeFeed")); break;
+    case 24: printPgmString(PSTR("homeFine")); break;
     case 25: printPgmString(PSTR("homeSeek")); break;
     case 26: printPgmString(PSTR("homeDelay")); break;
     case 27: printPgmString(PSTR("homePulloff")); break;
