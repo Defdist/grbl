@@ -154,20 +154,17 @@ uint8_t system_execute_line(char *line)
           }
           break;
 
-        case 'L' : // $L = autolevel X table using offset from EEPROM
+        case 'L' : // $L & $LSET
           sys.state = STATE_HOMING; // Set system state variable
-          if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
-          else {mc_autolevel_X();}
-          if (!sys.abort) {  // Execute startup scripts after successful homing.
-            sys.state = STATE_IDLE; // Set to IDLE when complete.
-            st_go_idle(); // Set steppers to the idle state before returning.
-          }
-          break;
-
-        case 'Q' : // $Q = Find X offset and store in EEPROM
-          sys.state = STATE_HOMING; // Set system state variable
-          if ( line[2] != 0 ) { return(STATUS_INVALID_STATEMENT); }
-          else {mc_X_is_level();}
+          if ( line[2] == 0 ) { //$L = autolevel X table using offset from EEPROM
+            for (int ii=0 ; ii<2 ; ii++) { mc_autolevel_X(); } //run twice (1st gets table close to square)
+          } //$L = autolevel X table using offset from EEPROM
+          else if( ((line[2] == 'S') && (line[3] == 'E') && (line[4] == 'T') && (line[5] == 0)) ) { //$LSET
+            mc_X_is_level(); //$LSET = determine existing 'squared' X offset and store in EEPROM
+          } else { //neither $L nor $LSET entered
+            sys.state = STATE_IDLE; //exit homing mode
+            return(STATUS_INVALID_STATEMENT);
+          }   
           if (!sys.abort) {  // Execute startup scripts after successful homing.
             sys.state = STATE_IDLE; // Set to IDLE when complete.
             st_go_idle(); // Set steppers to the idle state before returning.

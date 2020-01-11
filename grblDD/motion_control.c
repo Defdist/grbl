@@ -267,12 +267,12 @@ void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is dis
 
   limits_init(); //enable interrupts; after above completes we don't go near them again
 
-  //mc_homing_cycle(HOMING_CYCLE_X);
+  mc_homing_cycle(HOMING_CYCLE_X);
 }
 
 
-// '$Q' determine present X table offset and store into EEPROM calibration data
-void mc_X_is_level() //JTS2do this function is basically done, except we need to write EEPROM value
+// '$LSET' determine existing delta between X limit switches and store into EEPROM
+void mc_X_is_level()
 {
   mc_homing_cycle(HOMING_CYCLE_X);
 
@@ -288,7 +288,7 @@ void mc_X_is_level() //JTS2do this function is basically done, except we need to
 }
 
 
-// Perform homing cycle to locate and set machine zero. Only $L,$S,$H,$HX,$HY,$HZ execute this command.
+// Perform homing cycle to locate and set machine zero. Only $L,$LSET,$H,$HX,$HY,$HZ execute this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
 // executing the homing cycle. This prevents incorrect buffered plans after homing.
 void mc_homing_cycle(uint8_t cycle_mask) // cycle_mask is: HOMING_CYCLE_ALL, HOMING_CYCLE_X/Y/Z
