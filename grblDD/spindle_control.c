@@ -27,11 +27,12 @@ void spindle_init()
 {
   // Configure variable spindle PWM and enable pin, if requried. On the Uno, PWM and enable are
   // combined unless configured otherwise.
-  SPINDLE_PWM_DDR |= (1<<SPINDLE_PWM_BIT); // Configure as PWM output pin.
+  SPINDLE_PWM_DDR |= SPINDLE_PWM_MASK; // Configure as PWM output pin.
   SPINDLE_TCCRA_REGISTER = SPINDLE_TCCRA_INIT_MASK; // Configure PWM output compare timer
   SPINDLE_TCCRB_REGISTER = SPINDLE_TCCRB_INIT_MASK;
   pwm_gradient = SPINDLE_PWM_RANGE/(settings.rpm_max-settings.rpm_min);
 
+  SPINDLE_HALL_DISABLE_PORT &= ~(SPINDLE_HALL_DISABLE_MASK); //Hall_C PORT value (never changes)
   spindle_stop();
 }
 
@@ -52,12 +53,22 @@ uint8_t spindle_get_state()
 void spindle_stop()
 {
     SPINDLE_TCCRA_REGISTER &= ~(1<<SPINDLE_COMB_BIT); // Disable PWM. Output voltage is zero.
+
+    //JTS2do
+    //When the spindle is stopped, we also need to pull Hall_C sensor low.
+    //This ensures that at lower PWM values - when PWM(328p)->LPF->ADC(VFD) result is close to zero - 
+    //the spindle does not randomly start and stop.  This lets us safely use lower PWM values.
+    //Pulling Hall_C low causes invalid LUT state (b000) when Hall_A & Hall_B are also both low.
+    //When (A XOR B), Hall_C still corrupts data because VFD chooses wrong quadrant (good).
+    //End result is pulling Hall_C low keeps spindle from spinning when noise exists on PWM pin.
+    SPINDLE_HALL_DISABLE_DDR |= SPINDLE_HALL_DISABLE_MASK;
 }
 
 // Sets spindle speed PWM output. Called by spindle_set_state()
 // and stepper ISR. Keep routine small and efficient.
 void spindle_set_speed(uint8_t pwm_value)
 {
+  SPINDLE_HALL_DISABLE_DDR &= ~(SPINDLE_HALL_DISABLE_MASK); //set Hall_C sensor pin high impedance.
   SPINDLE_OCR_REGISTER = pwm_value; // Set PWM output level.
     if (pwm_value == SPINDLE_PWM_OFF_VALUE) {
       SPINDLE_TCCRA_REGISTER &= ~(1<<SPINDLE_COMB_BIT); // Disable PWM. Output voltage is zero.

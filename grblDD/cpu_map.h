@@ -91,7 +91,7 @@
     #define LIMIT_INT_vect   PCINT0_vect
     #define LIMIT_PCMSK      PCMSK0 // Pin change interrupt register
 
-    //JTS Define spindle overload pin (from 32M1).  Previously HW input pins (cycle start, reset, feed hold).
+    // JTS Define spindle overload pin (from 32M1).  Previously HW input pins (cycle start, reset, feed hold).
     // NOTE: All CONTROLs pins must be on the same port and not on a port with other (JTS interrupt) input pins (limits).
     #define CONTROL_PIN       PINC
     #define CONTROL_SPINDLE_OVERLOAD_BIT 4 //JTS Uno Analog Pin A4
@@ -104,14 +104,21 @@
     #define PROBE_BIT       5  // Uno Analog Pin 5
     #define PROBE_MASK      (1<<PROBE_BIT)
 
-    // Define spindle enable and spindle direction output pins.
+    // Define spindle enable pin
     #define SPINDLE_ENABLE_DDR    DDRB
     #define SPINDLE_ENABLE_PORT   PORTB
     #define SPINDLE_ENABLE_BIT    3  // Uno Digital Pin 11
+
+    // Define spindle direction pin
     #define SPINDLE_DIRECTION_DDR   DDRB
     #define SPINDLE_DIRECTION_PORT  PORTB
     #define SPINDLE_DIRECTION_BIT   5  // Uno Digital Pin 13 (NOTE: D13 can't be pulled-high input due to LED.)
 
+    #define SPINDLE_HALL_DISABLE_DDR   DDRC
+    #define SPINDLE_HALL_DISABLE_PIN   PINC
+    #define SPINDLE_HALL_DISABLE_PORT  PORTC
+    #define SPINDLE_HALL_DISABLE_BIT   3 // Uno Analog Pin 3
+    #define SPINDLE_HALL_DISABLE_MASK  (1<<SPINDLE_HALL_DISABLE_BIT)
 
     // Variable spindle configuration below. Do not change unless you know what you are doing.
     // NOTE: Only used when variable spindle is enabled.
@@ -137,6 +144,7 @@
     #define SPINDLE_PWM_DDR   DDRB
     #define SPINDLE_PWM_PORT  PORTB
     #define SPINDLE_PWM_BIT   3    // Uno Digital Pin 11
+    #define SPINDLE_PWM_MASK  (1<<SPINDLE_PWM_BIT)
 
   #endif
 
