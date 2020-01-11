@@ -202,13 +202,12 @@ void mc_dwell(float seconds)
 // '$L' Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
 void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is disabled
 {
-
   mc_homing_cycle(HOMING_CYCLE_X); //find X2 limit switch
 
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
   printFloat_CoordValue(delta_as_found);  //JTS2do: debug only
-  int16_t delta_calibrated = 774.000; //JTS2do: read from EEPROM
+  int16_t delta_calibrated = -685; //JTS2do: read from EEPROM
   printPgmString(PSTR(" delta "));
 
   float squaring_mm2move = ( (float)(delta_calibrated - delta_as_found) ) / settings.steps_per_mm[X_AXIS];
@@ -221,7 +220,7 @@ void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is dis
   gc_sync_position();
   plan_sync_position();
   
-  //stepper_X1_sleep();  // move only X2 during squaring
+  stepper_X1_sleep();  // move only X2 during squaring.
  
   //*******************************************************************************
 
@@ -264,7 +263,7 @@ void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is dis
 
   //******************************************************************************* 
  
-  //stepper_X1_wake();
+  stepper_X1_wake();
 
   limits_init(); //enable interrupts; after above completes we don't go near them again
 
