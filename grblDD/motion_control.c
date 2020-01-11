@@ -199,54 +199,91 @@ void mc_dwell(float seconds)
   delay_sec(seconds, DELAY_MODE_DWELL);
 }
 
-// Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
+// '$L' Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
 void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is disabled
 {
+
   mc_homing_cycle(HOMING_CYCLE_X); //find X2 limit switch
 
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
-  printFloat_CoordValue(delta_as_found);
-  
+  printFloat_CoordValue(delta_as_found);  //JTS2do: debug only
+  int16_t delta_calibrated = 774.000; //JTS2do: read from EEPROM
+  printPgmString(PSTR(" delta "));
+
+  float squaring_mm2move = ( (float)(delta_calibrated - delta_as_found) ) / settings.steps_per_mm[X_AXIS];
+  printFloat_CoordValue(squaring_mm2move);
+   printPgmString(PSTR(" 2move "));
+
   protocol_execute_realtime(); // Check for reset and set system abort.
   if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
-
   // Sync gcode parser and planner positions to homed position.
   gc_sync_position();
   plan_sync_position();
+  
+  //stepper_X1_sleep();  // move only X2 during squaring
+ 
+  //*******************************************************************************
 
-  int16_t delta_calibrated = 1001;//read from EEPROM
+  float target[N_AXIS]; //target[3]
 
-  //move away from steppers
-  //gc_execute_line(G91 G1 X+10 F50);
-  //stepper_X1_sleep();
-  //move delta_as_found - delta_calibrated; //move (only) stepper X2 to square table
+  // Initialize plan data struct for homing motion. Spindle is disabled.
+  plan_line_data_t plan_data;
+  plan_line_data_t *pl_data = &plan_data; //The address of plan_data is written to "*pl_data" 
+                                          //"pl_data" is a pointer to structure "plan_data"
+  memset(pl_data,0,sizeof(plan_line_data_t));
+  pl_data->condition = (PL_COND_FLAG_SYSTEM_MOTION|PL_COND_FLAG_NO_FEED_OVERRIDE);
+  #ifdef USE_LINE_NUMBERS
+    pl_data->line_number = HOMING_CYCLE_LINE_NUMBER;
+  #endif
+  //Ready to plan motion
+
+  // move X away from limit switches to prevent tripping during squaring routine
+  system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
+  sys_position[X_AXIS] = 0;
+  target[X_AXIS] = squaring_mm2move;  //The calibrated offset we're trying to restore  
+  sys.homing_axis_lock = get_step_pin_mask(X_AXIS); //enable X axis motion
+  pl_data->feed_rate = settings.homing_feed_rate; //move slowly
+  plan_buffer_line(target, pl_data); // Bypass mc_line(). Directly plan motion.
+  sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute motion and clear existing flags.
+  st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
+  st_wake_up(); // Enable steppers  
+  do { //move away from X limits until both limits aren't tripped
+    st_prep_buffer(); // Check and prep segment buffer
+    if (sys_rt_exec_state & (EXEC_RESET | EXEC_CYCLE_STOP)) { // true when pull-off motion completes.
+      system_clear_exec_state_flag(EXEC_CYCLE_STOP);  
+      break;
+    }
+  } while (1); //loop keeps running until motion stops (breaks out when done)
+  //at this point we've moved away from the limit switches
+  st_reset(); // Immediately force kill stepper interrupts and reset step segment buffer.
+  delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
+
+  //Put things back the way they were before all this uncontrolled motion started
+  sys.step_control = STEP_CONTROL_NORMAL_OP; // Return step control to normal operation.
+
+  //******************************************************************************* 
+ 
   //stepper_X1_wake();
 
-  limits_enable();
+  limits_init(); //enable interrupts; after above completes we don't go near them again
 
-  mc_homing_cycle(HOMING_CYCLE_X);
+  //mc_homing_cycle(HOMING_CYCLE_X);
 }
 
 
-// determine present X table offset and store into EEPROM calibration data
+// '$Q' determine present X table offset and store into EEPROM calibration data
 void mc_X_is_level() //JTS2do this function is basically done, except we need to write EEPROM value
 {
   mc_homing_cycle(HOMING_CYCLE_X);
 
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
-  printFloat_CoordValue(delta_as_found);
+  printFloat_CoordValue(delta_as_found);  //JTS2do: debug only
+  limits_init(); //not really necessary because homing cycle immendiately disables them again.
 
-  protocol_execute_realtime(); // Check for reset and set system abort.
-  if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
+  //JTS2do: write delta to EEPROM
 
-  // Sync gcode parser and planner positions to homed position.
-  gc_sync_position();
-  plan_sync_position();
-
-  //store delta_X1X2 in EEPROM
-  
   mc_homing_cycle(HOMING_CYCLE_X); //cause we've ruined machine state
 
 }
