@@ -202,6 +202,7 @@ void mc_dwell(float seconds)
 // '$L' Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
 void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is disabled
 {
+  mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way
   mc_homing_cycle(HOMING_CYCLE_X); //find X2 limit switch
 
   limits_disable(); //disable interrupts
@@ -274,6 +275,7 @@ void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is dis
 // '$LSET' determine existing delta between X limit switches and store into EEPROM
 void mc_X_is_level()
 {
+  mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way
   mc_homing_cycle(HOMING_CYCLE_X);
 
   limits_disable(); //disable interrupts
