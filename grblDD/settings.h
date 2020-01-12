@@ -75,8 +75,8 @@
 #define EEPROM_ADDR_PARAMETERS     512U //512:615 = WCS offsets (G54/G55...G59 stored here
                                         //616:640 = UNUSED
 #define EEPROM_ADDR_CALIBRATION    656U //656:687 = calibration data, uint_16t (2 characters each)
-#define EEPROM_ADDR_RMA_NOTES      688U //688:767 = $B manufacturing/RMA notes stored here
-#define EEPROM_ADDR_STARTUP_BLOCK  768U //768:927 = $N data (both startup blocks)
+#define EEPROM_ADDR_STARTUP_BLOCK  688U //768:847 = $N data (both startup blocks)
+#define EEPROM_ADDR_MANF_NOTES     848U //848:927 = $B manufacturing/RMA notes stored here
                                         //928:942 = UNUSED
 #define EEPROM_ADDR_BUILD_INFO     942U //942:1023 = Additional $I data (added to end of )
 
@@ -94,7 +94,7 @@
 #define AXIS_SETTINGS_INCREMENT  10  // Must be greater than the number of axis settings
 
 // Global persistent settings (Stored from byte EEPROM_ADDR_GLOBAL onwards)
-typedef struct {
+typedef struct { //values returned by $$ that $RST can restore
   // Axis settings
   float steps_per_mm[N_AXIS];
   float max_rate[N_AXIS];
@@ -123,6 +123,14 @@ typedef struct {
 } settings_t;
 extern settings_t settings;
 
+/*JTS2do: Finish defining new struct
+// Global persistent settings (Stored from byte EEPROM_ADDR_CALIBRATION onwards)
+typedef struct { //values returned by $$ that $RST cannot restore
+  // Original Manufacturing Date
+  uint8_t date_manufactured[DATE_CHAR_LENGTH]
+}
+*/
+
 // Initialize the configuration subsystem (load settings from EEPROM)
 void settings_init();
 
@@ -140,6 +148,9 @@ uint8_t settings_read_startup_line(uint8_t n, char *line);
 
 // Stores build info user-defined string
 void settings_store_build_info(char *line);
+
+// Stores manufacture notes user-defined string
+void settings_store_manf_notes(char *line);
 
 // Reads build info user-defined string
 uint8_t settings_read_build_info(char *line);

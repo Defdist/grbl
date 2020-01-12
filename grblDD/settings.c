@@ -70,13 +70,21 @@ void settings_store_startup_line(uint8_t n, char *line)
   memcpy_to_eeprom_with_checksum(addr,(char*)line, LINE_BUFFER_SIZE);
 }
 
-
 // Method to store build info into EEPROM
 // NOTE: This function can only be called in IDLE state.
 void settings_store_build_info(char *line)
 {
   // Build info can only be stored when state is IDLE.
   memcpy_to_eeprom_with_checksum(EEPROM_ADDR_BUILD_INFO,(char*)line, LINE_BUFFER_SIZE);
+}
+
+
+// Method to store manufacturing notes into EEPROM
+// NOTE: This function can only be called in IDLE state.
+void settings_store_manf_notes(char *line)
+{
+  // Build info can only be stored when state is IDLE.
+  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_MANF_NOTES,(char*)line, LINE_BUFFER_SIZE);
 }
 
 
@@ -95,7 +103,7 @@ void settings_write_coord_data(uint8_t coord_select, float *coord_data)
 // NOTE: This function can only be called in IDLE state.
 void write_global_settings()
 {
-  eeprom_put_char(0, SETTINGS_VERSION);
+  eeprom_put_char(0, SETTINGS_VERSION); //byte 0x0000 in EEPROM
   memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL, (char*)&settings, sizeof(settings_t));
 }
 
@@ -146,7 +154,7 @@ uint8_t settings_read_startup_line(uint8_t n, char *line)
 }
 
 
-// Reads build info from EEPROM. Updated pointed line string data.
+// Reads build info from EEPROM. Updates pointed line string data.
 uint8_t settings_read_build_info(char *line) //when finished, 'line' contains $I build info
 {
   if (!(memcpy_from_eeprom_with_checksum((char*)line, EEPROM_ADDR_BUILD_INFO, LINE_BUFFER_SIZE))) {
@@ -155,6 +163,14 @@ uint8_t settings_read_build_info(char *line) //when finished, 'line' contains $I
     settings_store_build_info(line);
     return(false);
   }
+  return(true);
+}
+
+
+// Reads manufacturing/rma info from EEPROM. Updates pointed line string data.
+uint8_t settings_read_manf_notes(char *line) //when finished, 'line' contains manufacturing notes
+{
+  memcpy_from_eeprom_with_checksum((char*)line, EEPROM_ADDR_MANF_NOTES, LINE_BUFFER_SIZE);
   return(true);
 }
 

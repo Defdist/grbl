@@ -119,19 +119,6 @@ uint8_t system_execute_line(char *line)
             // Don't run startup script. Prevents stored moves in startup from causing accidents.
           } // Otherwise, no effect.
           break;
-
-///////////////////////////////////////////////////////////////////
-        //JTS2do: finish this case
-        case 'B' : // $BW & $BR
-          if( line[2] == 'R' && (line[3] == 0) ) { //$BR = Read Build Notes
-            //read buildnotes from EEPROM
-            //report_build_info(line);
-          } 
-          else if( ((line[2] == 'W') && (line[3] == '=')) ) { //$BW = Overwrite previous build notes with new notes.
-            //write buildnotes to EEPROM
-          } else { return(STATUS_INVALID_STATEMENT); } //neither $BW nor $BR entered 
-          break;
-/////////////////////////////////////////////////////////////////////
       }
       break;
 
@@ -194,8 +181,23 @@ uint8_t system_execute_line(char *line)
           system_set_exec_state_flag(EXEC_SLEEP); // Set to execute sleep mode immediately
           break;
 
+        case 'B' : // $B & $B= - stored line is all CAPS, no spaces (use '.' for space)  76 characters MAX!
+          if( line[++char_counter] == 0 )  { //$B = Read Build Notes
+            settings_read_manf_notes(line); //when finished, 'line' contains $B manufacturing notes
+            report_manf_notes(line);
+          } else  { //"$B=" Overwrite previous build notes with new notes.
+            if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
+            helper_var = char_counter; // Set helper variable as counter to start of user info line.
+            //write buildnotes to EEPROM
+            do {
+              line[char_counter-helper_var] = line[char_counter];
+            } while (line[char_counter++] != 0);
+            settings_store_manf_notes(line);
+          }
+          break;
+
         case 'I' : // $I = Print or store build info. [IDLE/ALARM]
-          if ( line[++char_counter] == 0 ) {
+          if ( line[++char_counter] == 0 ) { //$I
             settings_read_build_info(line);  //when finished, 'line' contains $I build info
             report_build_info(line);
           #ifdef ENABLE_BUILD_INFO_WRITE_COMMAND

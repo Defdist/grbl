@@ -42,6 +42,12 @@ Items listed below are changes to standard grbl 1v1h:
 
 -$E now reports entire EEPROM (mainly for debug)  
 
+-'$B=' stores RMA/manufacturing notes in memory.  Write whatever you want here.  Each successive call overwrites entire previous note.  
+--76 characters max (grbl reports error if longer).  Only numbers, letters, and period are stored (all other symbols removed, including spaces).  
+-'$B' reports any manufacturing/rma notes previously stored.  All letters CAPITALIZED.
+Example: "$B=Hello.World.this text has spaces".
+Example: "$B" returns: "HELLO.WORLD.THISTEXTHASSPACES"
+
 -Added (background) spindle safety interlock; BLDC HallC state intentionally pulled low when M5 disables spindle.  
 
 -Probing should work better than you've ever seen it work.  Of course, y'all can't test it until I send 64M1 firmware (spindle).  

@@ -28,7 +28,6 @@
 
 #include "grbl.h"
 
-
 // Internal report utilities to reduce flash with repetitive tasks turned into functions.
 void report_util_setting_prefix(uint8_t n) { serial_write('$'); print_uint8_base10(n); serial_write('='); }
 static void report_util_line_feed() { printPgmString(PSTR("\r\n")); }
@@ -44,6 +43,8 @@ static void report_util_axis_values(float *axis_value) {
   }
 }
 
+
+// Text printed in front of each grbl setting ($$)
 static void report_util_setting_string(uint8_t n) {
   serial_write(' ');
   serial_write('(');
@@ -90,17 +91,21 @@ static void report_util_setting_string(uint8_t n) {
 }
 
 
+static void report_util_int16_setting(uint16_t n, int val) { 
+  report_util_setting_prefix(n); 
+  printInteger(n);
+  report_util_setting_string(n);
+}
+
 static void report_util_uint8_setting(uint8_t n, int val) { 
   report_util_setting_prefix(n); 
   print_uint8_base10(val); 
-  //report_util_line_feed(); //JTS disabled
-  report_util_setting_string(n); //JTS enabled
+  report_util_setting_string(n);
 }
 static void report_util_float_setting(uint8_t n, float val, uint8_t n_decimal) { 
   report_util_setting_prefix(n); 
   printFloat(val,n_decimal);
-  //report_util_line_feed(); //JTS disabled
-  report_util_setting_string(n); //JTS enabled
+  report_util_setting_string(n);
 }
 
 
@@ -191,7 +196,7 @@ void report_grbl_help() {
 }
 
 
-// Grbl global settings print out.
+// Grbl global $$ settings print out.
 // NOTE: The numbering scheme here must correlate to storing in settings.c
 void report_grbl_settings() {
   // Print Grbl settings.
@@ -346,6 +351,13 @@ void report_startup_line(uint8_t n, char *line)
   printPgmString(PSTR("$N"));
   print_uint8_base10(n);
   serial_write('=');
+  printString(line);
+  report_util_line_feed();
+}
+
+// Prints manufacturing/rma notes ($B)
+void report_manf_notes(char *line)
+{
   printString(line);
   report_util_line_feed();
 }
