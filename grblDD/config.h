@@ -172,7 +172,7 @@
 #define REPORT_FIELD_BUFFER_STATE // Default enabled. Comment to disable.('?')
 #define REPORT_FIELD_PIN_STATE // Default enabled. Comment to disable.
 //#define REPORT_FIELD_CURRENT_FEED_SPEED // Report realtime spindle and feed rates ('?')
-//#define REPORT_FIELD_WORK_COORD_OFFSET // Default enabled. Comment to disable. ('?')
+#define REPORT_FIELD_WORK_COORD_OFFSET // Default enabled. Comment to disable. ('?')
 //#define REPORT_FIELD_OVERRIDES // Default enabled. Comment to disable. ('?')
 #define REPORT_FIELD_LINE_NUMBERS // Return line number, if contained in source g-code (e.g. N123). ('?')
 

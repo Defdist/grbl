@@ -435,10 +435,13 @@ void report_realtime_status() //data returned by typing in '?'
     #ifdef REPORT_FIELD_LINE_NUMBERS
       // Report current line number
       plan_block_t * cur_block = plan_get_current_block();
-      uint32_t ln = cur_block->line_number;
-      printPgmString(PSTR("|L:"));    
-      if ( (cur_block != NULL) && (ln > 0) ) {printInteger(ln);}
-      else {serial_write('0');}
+      printPgmString(PSTR("|L:"));
+      if (cur_block != NULL) {
+        uint32_t ln = cur_block->line_number;
+        if (ln > 0) {
+          printInteger(ln);
+        }
+      } else { serial_write('0'); }
     #endif
   #endif
 
