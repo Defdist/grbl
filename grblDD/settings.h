@@ -74,11 +74,14 @@
 #define EEPROM_ADDR_GLOBAL         1U   //001:086 = $number= commands (e.g. $20=0)
                                         //087:511 = UNUSED ("reserved for future use")
 #define EEPROM_ADDR_PARAMETERS     512U //512:615 = WCS offsets (G54/G55...G59 stored here
-                                        //616:640 = UNUSED
-#define EEPROM_ADDR_CALIBRATION    656U //656:687 = calibration data, uint_16t (2 characters each)
-#define EEPROM_ADDR_STARTUP_BLOCK  688U //768:847 = $N data (both startup blocks)
-#define EEPROM_ADDR_MANF_NOTES     848U //848:927 = $B manufacturing/RMA notes stored here
-                                        //928:942 = UNUSED
+                                        //616:655 = UNUSED
+#define EEPROM_ADDR_DATES          656U //656:663 = Original Manufacturing Date, Last RMA Date (YYMMDD)
+#define EEPROM_ADDR_HW_VERSIONS    664U //664:671 = factory data, uint_16t (2 bytes each) (e.g. '3B') (room for 7 total )
+#define EEPROM_ADDR_CALIBRATION    672U //672:687 = $L storage area for autolevel (int16_t)
+#define EEPROM_ADDR_STARTUP_BLOCK  688U //688:767 = $N0 startup block
+                                        //768:847 = $N1 startup block
+#define EEPROM_ADDR_MANF_NOTES     848U //848:929 = $B manufacturing/RMA notes stored here
+                                        //930:942 = UNUSED
 #define EEPROM_ADDR_BUILD_INFO     942U //942:1023 = Additional $I data (added to end of )
 
 // Define EEPROM address indexing for coordinate parameters
