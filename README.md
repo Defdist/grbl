@@ -50,20 +50,21 @@ Items listed below are changes to standard grbl 1v1h:
 
 -'M17' command: places steppers into high power mode (ONLY during the next motion command).  Primarily designed to free stuck axes (particularly X).    
 USE SPARINGLY... PCB overheats (and safely shuts down) in ~5 seconds.  Intended use: freeing bound X axis.  
-Note: This replaces '$K' functionality I previously described.  
 
 -'M18' command: turn steppers off (until next motion command).  Allows you to hand turn motors without unplugging GG.  Useful for assembly/troubleshooting.  
 Note: This replaces '$O' functionality previously described.
 
--When GG hits a hard limit switch, the "ALARM:1" response is now followed by the tripped axis (i.e. "ALARM:1X", "ALARM:1Y", or "ALARM:1Z").  
+-When GG hits a hard limit switch, the response is now:  
+--"[MSG:LIM TRIP X]" or "[MSG:LIM TRIP Y]" or "[MSG:LIM TRIP Z]"  
+--"ALARM:1"  
 This should make it easier for our customers to figure out which limit switch has tripped.  
 
-If a particular g-code line contains a formatting error, grbl will now echo the entire line, then report the error number.  
+If a particular g-code line contains a formatting error, grbl now echoes the entire line, then reports the error number:    
 --Example (sending "g0 X-J"):  
 --New grbl response:  
 ---[echo: G0X-J]  
 ---error:2  
---(Note: the echoed line contains all capitalized letters, no spaces, and no comments)  
+--(Note: the echoed line is formatted (all capital letters, no spaces, no comments)  
 
 If the g-code contains line numbers (e.g. "N123 G0 X-1"), grbl will now return the line currently executing when '?' is received.  
 If the g-code does not contain a line number (e.g. G0 X-1"), grbl returns '0'.  
@@ -78,7 +79,8 @@ The following improvements were made:
 --feedrate and spindle rpm are no longer returned here (they're already available via '$G' parser state).  
 --When a limit switch or probe isn't tripped, the corresponding digit is now filled with '0'.  Previously, non-tripped parameters were not sent at all.  
 Returned data from '?' is formatted as follows:  
-<state | M:X,Y,Z(absolute WCS) | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | L:nnnnnnn | PXYZ (letter appears only if tripped) | W:X,Y,Z(work offsets) >  
+<state | M:X,Y,Z(absolute WCS) | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | L:nnnnnnn | PXYZ (letter if tripped, else '0') | W:X,Y,Z(work offsets) >  
+//Note: WCO only appears every once in a while, and whenever it updates.  
 Examples:  
 <Idle | M:-91.500,-20.000,-0.500 | B:15,128 | L:0 | 0000> (idle | WCS | Buffers completely empty | nothing is tripped (probe/X/Y/Z all equal 0)  
 <Idle | M:-91.500,-20.000,-0.500 | B:15,128 | L:0 | P000> (same as above, except probe is tripped)  
