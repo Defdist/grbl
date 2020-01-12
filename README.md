@@ -78,7 +78,7 @@ The following improvements were made:
 --feedrate and spindle rpm are no longer returned here (they're already available via '$G' parser state).  
 --When a limit switch or probe isn't tripped, the corresponding digit is now filled with '0'.  Previously, non-tripped parameters were not sent at all.  
 Returned data from '?' is formatted as follows:  
-<state | M:X,Y,Z<absolute WCS> | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | L:nnnnnnn | PXYZ (letter appears only if tripped)>  
+<state | M:X,Y,Z(absolute WCS) | B:(free blocks in planner buffer),(free bytes in serial RX buffer) | L:nnnnnnn | PXYZ (letter appears only if tripped) | W:X,Y,Z(work offsets) >  
 Examples:  
 <Idle | M:-91.500,-20.000,-0.500 | B:15,128 | L:0 | 0000> (idle | WCS | Buffers completely empty | nothing is tripped (probe/X/Y/Z all equal 0)  
 <Idle | M:-91.500,-20.000,-0.500 | B:15,128 | L:0 | P000> (same as above, except probe is tripped)  

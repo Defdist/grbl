@@ -125,15 +125,16 @@ void report_status_message(uint8_t status_code)
 // Prints alarm messages.
 void report_alarm_message(uint8_t alarm_code)
 {
-  printPgmString(PSTR("ALARM:"));
-  print_uint8_base10(alarm_code);
-  if(alarm_code == EXEC_ALARM_HARD_LIMIT)
+  if(alarm_code & EXEC_ALARM_HARD_LIMIT) // hard limit occurred
   {
     uint8_t lim_pin_state = limits_get_state(); //limit switch status 
-    if (bit_istrue(lim_pin_state,bit(X_AXIS))) { serial_write('X'); }
-    if (bit_istrue(lim_pin_state,bit(Y_AXIS))) { serial_write('Y'); }
-    if (bit_istrue(lim_pin_state,bit(Z_AXIS))) { serial_write('Z'); }
+    if (bit_istrue(lim_pin_state,bit(X_AXIS))) { report_feedback_message(MESSAGE_LIM_X); }
+    if (bit_istrue(lim_pin_state,bit(Y_AXIS))) { report_feedback_message(MESSAGE_LIM_Y); }
+    if (bit_istrue(lim_pin_state,bit(Z_AXIS))) { report_feedback_message(MESSAGE_LIM_Z); }
   }
+  printPgmString(PSTR("ALARM:"));
+  print_uint8_base10(alarm_code);
+
   report_util_line_feed();
   delay_ms(500); // Force delay to ensure message clears serial write buffer.
 }
@@ -165,6 +166,14 @@ void report_feedback_message(uint8_t message_code)
       printPgmString(PSTR("Restore:spindle")); break;
     case MESSAGE_SLEEP_MODE:
       printPgmString(PSTR("Sleep")); break;
+    case MESSAGE_LIM_X: case MESSAGE_LIM_Y: case MESSAGE_LIM_Z:
+      printPgmString(PSTR("LIM TRIP "));
+      if      ( message_code == MESSAGE_LIM_X ) { serial_write('X'); }
+      else if ( message_code == MESSAGE_LIM_Y ) { serial_write('Y'); }
+      else    /*message_code == MESSAGE_LIM_Z*/ { serial_write('Z'); }
+      break;
+    default:
+      serial_write('_'); //shouldn't ever get here, but just in case
   }
   report_util_feedback_line_feed();
 }
@@ -471,7 +480,7 @@ void report_realtime_status() //data returned by typing in '?'
         sys.report_wco_counter = (REPORT_WCO_REFRESH_BUSY_COUNT-1); // Reset counter for slow refresh
       } else { sys.report_wco_counter = (REPORT_WCO_REFRESH_IDLE_COUNT-1); }
       if (sys.report_ovr_counter == 0) { sys.report_ovr_counter = 1; } // Set override on next report.
-      printPgmString(PSTR("|WCO:"));
+      printPgmString(PSTR("|W:"));
       report_util_axis_values(wco);
     }
   #endif
