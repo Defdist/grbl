@@ -388,7 +388,7 @@ ISR(TIMER1_COMPA_vect)
       #endif
 
       // Set real-time spindle output as segment is loaded, just prior to the first step.
-      spindle_set_speed(st.exec_segment->spindle_pwm);  //JTS 2do: why do we set spindle speed each interrupt?  Realtime override.
+      spindle_set_speed(st.exec_segment->spindle_pwm);  //JTS2do: why set spindle speed each interrupt (Realtime override?)?
 
 
     } else {

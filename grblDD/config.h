@@ -117,7 +117,7 @@
 // and addresses are defined in settings.h. With the current settings, up to 2 startup blocks may
 // be stored and executed in order. These startup blocks would typically be used to set the g-code
 // parser state depending on user preferences.
-#define N_STARTUP_LINE 1 // Integer (1-2)
+#define N_STARTUP_LINE 2 // Integer (1-2)
 
 // Number of floating decimal points printed by Grbl for certain value types. These settings are
 // determined by realistic and commonly observed values in CNC machines. For example, position
@@ -311,15 +311,6 @@
 #define ENABLE_RESTORE_EEPROM_WIPE_ALL         // '$RST=*' Default enabled. Comment to disable.
 #define ENABLE_RESTORE_EEPROM_DEFAULT_SETTINGS // '$RST=$' Default enabled. Comment to disable.
 #define ENABLE_RESTORE_EEPROM_CLEAR_PARAMETERS // '$RST=#' Default enabled. Comment to disable.
-
-// Defines the EEPROM data restored upon a settings version change and `$RST=*` command. Whenever the
-// the settings or other EEPROM data structure changes between Grbl versions, Grbl will automatically
-// wipe and restore the EEPROM. This macro controls what data is wiped and restored. This is useful
-// particularily for OEMs that need to retain certain data. For example, the BUILD_INFO string can be
-// written into the Arduino EEPROM via a seperate .INO sketch to contain product data. Altering this
-// macro to not restore the build info EEPROM will ensure this data is retained after firmware upgrades.
-// NOTE: Uncomment to override defaults in settings.h
-// #define SETTINGS_RESTORE_ALL (SETTINGS_RESTORE_DEFAULTS | SETTINGS_RESTORE_PARAMETERS | SETTINGS_RESTORE_STARTUP_LINES | SETTINGS_RESTORE_BUILD_INFO)
 
 // Enable the '$I=(string)' build info write command. If disabled, any existing build info data must
 // be placed into EEPROM via external means with a valid checksum value. This macro option is useful

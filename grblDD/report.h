@@ -34,7 +34,7 @@
 #define STATUS_SOFT_LIMIT_ERROR 10
 #define STATUS_OVERFLOW 11
 #define STATUS_MAX_STEP_RATE_EXCEEDED 12
-//#define STATUS_ 13 //JTS 2do repurpose this for STATUS_SPINDLE_OVERLOAD
+//#define STATUS_ 13 //JTS2do repurpose this for STATUS_SPINDLE_OVERLOAD
 #define STATUS_LINE_LENGTH_EXCEEDED 14
 #define STATUS_TRAVEL_EXCEEDED 15
 #define STATUS_INVALID_JOG_COMMAND 16
@@ -121,5 +121,8 @@ void report_execute_startup_message(char *line, uint8_t status_code);
 
 // Prints build info and user info
 void report_build_info(char *line);
+
+//Prints entire EEPROM contents
+void report_read_EEPROM();
 
 #endif

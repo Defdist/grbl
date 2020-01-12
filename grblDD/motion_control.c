@@ -200,7 +200,7 @@ void mc_dwell(float seconds)
 }
 
 // '$L' Levels X axis using calibration data (dual steppers).  Won't work on GG1/GG2 (need dual X limits).
-void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is disabled
+void mc_autolevel_X()
 {
   mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way
   mc_homing_cycle(HOMING_CYCLE_X); //find X2 limit switch
@@ -209,11 +209,11 @@ void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is dis
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
   printFloat_CoordValue(delta_as_found);  //JTS2do: debug only
   int16_t delta_calibrated = -685; //JTS2do: read from EEPROM
-  printPgmString(PSTR(" delta "));
+  printPgmString(PSTR(" delta ")); //JTS2do: debug only
 
   float squaring_mm2move = ( (float)(delta_calibrated - delta_as_found) ) / settings.steps_per_mm[X_AXIS];
   printFloat_CoordValue(squaring_mm2move);
-   printPgmString(PSTR(" 2move "));
+   printPgmString(PSTR(" 2move ")); //JTS2do: debug only
 
   protocol_execute_realtime(); // Check for reset and set system abort.
   if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
@@ -272,7 +272,7 @@ void mc_autolevel_X() //JTS2do this function needs motion once X1 stepper is dis
 }
 
 
-// '$LSET' determine existing delta between X limit switches and store into EEPROM
+// '$LS' determine existing delta between X limit switches and store into EEPROM
 void mc_X_is_level()
 {
   mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way

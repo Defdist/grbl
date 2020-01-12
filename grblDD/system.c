@@ -37,11 +37,11 @@ ISR(PCINT1_vect)
 {
   if(CONTROL_PIN & (1<<CONTROL_SPINDLE_OVERLOAD_BIT)) //true if spindle overload pin (A4) toggled to high
   {
-    //bit_true(sys_rt_exec_state, EXEC_CYCLE_START);} //JTS 2do: add "SLOW DOWN SPINDLE OVERLOADED"
+    //bit_true(sys_rt_exec_state, EXEC_CYCLE_START);} //JTS2do: add "SLOW DOWN SPINDLE OVERLOADED"
   }
   else //true if spindle overload pin (A4) toggled to low
   {     //also true if probe tripped.  Probe signal is noisy, so reading it (again) here is unreliable.
-    //JTS 2do add "SPINDLE NO LONGER OVERLOADED"   
+    //JTS2do add "SPINDLE NO LONGER OVERLOADED"   
     PCMSK1 = CONTROL_MASK; //JTS disable probe interrupt vector (to prevent probe interrupts when not probing).
     sys.probe_interrupt_occurred = 1; //JTS log that probe occurred
   }
@@ -119,6 +119,19 @@ uint8_t system_execute_line(char *line)
             // Don't run startup script. Prevents stored moves in startup from causing accidents.
           } // Otherwise, no effect.
           break;
+
+///////////////////////////////////////////////////////////////////
+        //JTS2do: finish this case
+        case 'B' : // $BW & $BR
+          if( line[2] == 'R' && (line[3] == 0) ) { //$BR = Read Build Notes
+            //read buildnotes from EEPROM
+            //report_build_info(line);
+          } 
+          else if( ((line[2] == 'W') && (line[3] == '=')) ) { //$BW = Overwrite previous build notes with new notes.
+            //write buildnotes to EEPROM
+          } else { return(STATUS_INVALID_STATEMENT); } //neither $BW nor $BR entered 
+          break;
+/////////////////////////////////////////////////////////////////////
       }
       break;
 
@@ -154,15 +167,20 @@ uint8_t system_execute_line(char *line)
           }
           break;
 
-        case 'L' : // $L & $LSET
+        case 'E' : // $E = report entire EEPROM
+          if ( line[2] == 0 ) { report_read_EEPROM(); }
+          else { return(STATUS_INVALID_STATEMENT); }
+          break;
+
+        case 'L' : // $L & $LS
           sys.state = STATE_HOMING; // Set system state variable
           if ( line[2] == 0 ) { //$L = autolevel X table using offset from EEPROM
             for (int ii=0 ; ii<2 ; ii++) { mc_autolevel_X(); } //run twice (1st gets table close to square)
           } //$L = autolevel X table using offset from EEPROM
-          else if( ((line[2] == 'S') && (line[3] == 'E') && (line[4] == 'T') && (line[5] == 0)) ) { //$LSET
-            mc_X_is_level(); //$LSET = determine existing 'squared' X offset and store in EEPROM
-          } else { //neither $L nor $LSET entered
-            sys.state = STATE_IDLE; //exit homing mode
+          else if( ((line[2] == 'S') && (line[3] == 0)) ) { //$LS
+            mc_X_is_level(); //$LS = determine existing 'squared' X offset and store in EEPROM
+          } else { //neither $L nor $LS entered
+            sys.state = STATE_IDLE; //exit level mode
             return(STATUS_INVALID_STATEMENT);
           }   
           if (!sys.abort) {  // Execute startup scripts after successful homing.
@@ -178,10 +196,12 @@ uint8_t system_execute_line(char *line)
 
         case 'I' : // $I = Print or store build info. [IDLE/ALARM]
           if ( line[++char_counter] == 0 ) {
-            settings_read_build_info(line);
+            settings_read_build_info(line);  //when finished, 'line' contains $I build info
             report_build_info(line);
           #ifdef ENABLE_BUILD_INFO_WRITE_COMMAND
-            } else { // Store startup line [IDLE/ALARM]
+            //this command will overwrite other EEPROM data if longer than 78 characters (length isn't checked).
+            //82 characters available, but last four indicate EOL (x0AB0, where'xAB' is last two char in string).
+            } else { // Store build info line [IDLE/ALARM]
               if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
               helper_var = char_counter; // Set helper variable as counter to start of user info line.
               do {

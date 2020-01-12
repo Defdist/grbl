@@ -37,9 +37,12 @@ Items listed below are changes to standard grbl 1v1h:
 --  For our prototyping needs, we can just manually send that command.  
 --  For release, DDcut should probably just always send that command after updating grbl firmware (if we don't do that already).  
 
--When a user updates the firmware on a GG1/GG2 machine, the user will need to tell DDcut which machine they have (GG1 w/ GG1 spindle), (GG1 w/ GG2 spindle), (GG2)(e.g. via a pop-up window).  DDcut will then need to select the correct firmware version to install.  
 
 -$HX, $HY, or $HZ homes single axis ($H still homes all axes).  This should make testing limit switch tab placement easier.  
+
+-$E now reports entire EEPROM (mainly for debug)  
+
+-Added (background) spindle safety interlock; BLDC HallC state intentionally pulled low when M5 disables spindle.  
 
 -Probing should work better than you've ever seen it work.  Of course, y'all can't test it until I send 64M1 firmware (spindle).  
 

@@ -146,8 +146,8 @@ uint8_t settings_read_startup_line(uint8_t n, char *line)
 }
 
 
-// Reads startup line from EEPROM. Updated pointed line string data.
-uint8_t settings_read_build_info(char *line)
+// Reads build info from EEPROM. Updated pointed line string data.
+uint8_t settings_read_build_info(char *line) //when finished, 'line' contains $I build info
 {
   if (!(memcpy_from_eeprom_with_checksum((char*)line, EEPROM_ADDR_BUILD_INFO, LINE_BUFFER_SIZE))) {
     // Reset line with default value
@@ -176,8 +176,8 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 // Reads Grbl global settings struct from EEPROM.
 uint8_t read_global_settings() {
   // Check version-byte of eeprom
-  uint8_t version = eeprom_get_char(0);
-  if (version == SETTINGS_VERSION) {
+  uint8_t version = eeprom_get_char(0); //EEPROM version is stored at block 0
+  if (version == SETTINGS_VERSION) { //JTS2do: see if new EEPROM version affects this function
     // Read settings-record and check checksum
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL, sizeof(settings_t)))) {
       return(false);
@@ -301,7 +301,7 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
 
 // Initialize the config subsystem
 void settings_init() {
-  if(!read_global_settings()) {
+  if( !read_global_settings() ) {
     report_status_message(STATUS_SETTING_READ_FAIL);
     settings_restore(SETTINGS_RESTORE_ALL); // Force restore all EEPROM data.
     report_grbl_settings();

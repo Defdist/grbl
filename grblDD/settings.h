@@ -57,18 +57,28 @@
 #define SETTINGS_RESTORE_PARAMETERS bit(1)
 #define SETTINGS_RESTORE_STARTUP_LINES bit(2)
 #define SETTINGS_RESTORE_BUILD_INFO bit(3)
-#ifndef SETTINGS_RESTORE_ALL
-  #define SETTINGS_RESTORE_ALL 0xFF // All bitflags
-#endif
+// Defines the EEPROM data restored upon a settings version change and `$RST=*` command. Whenever the
+// the settings or other EEPROM data structure changes between Grbl versions, Grbl will automatically
+// wipe and restore the EEPROM. This macro controls what data is wiped and restored. This is useful
+// particularily for OEMs that need to retain certain data. For example, the BUILD_INFO string can be
+// written into the Arduino EEPROM via a seperate .INO sketch to contain product data. Altering this
+// macro to not restore the build info EEPROM will ensure this data is retained after firmware upgrades.
+#define SETTINGS_RESTORE_ALL (SETTINGS_RESTORE_DEFAULTS | SETTINGS_RESTORE_PARAMETERS | SETTINGS_RESTORE_STARTUP_LINES)
+  //don't restore Build Info ($I) or calibration ($L) values with $RST command
 
 // Define EEPROM memory address location values for Grbl settings and parameters
 // NOTE: The Atmega328p has 1KB EEPROM. The upper half is reserved for parameters and
 // the startup script. The lower half contains the global settings and space for future
 // developments.
-#define EEPROM_ADDR_GLOBAL         1U
-#define EEPROM_ADDR_PARAMETERS     512U
-#define EEPROM_ADDR_STARTUP_BLOCK  768U
-#define EEPROM_ADDR_BUILD_INFO     942U
+#define EEPROM_ADDR_GLOBAL         1U   //001:086 = $number= commands (e.g. $20=0)
+                                        //087:511 = UNUSED ("reserved for future use")
+#define EEPROM_ADDR_PARAMETERS     512U //512:615 = WCS offsets (G54/G55...G59 stored here
+                                        //616:640 = UNUSED
+#define EEPROM_ADDR_CALIBRATION    656U //656:687 = calibration data, uint_16t (2 characters each)
+#define EEPROM_ADDR_RMA_NOTES      688U //688:767 = $B manufacturing/RMA notes stored here
+#define EEPROM_ADDR_STARTUP_BLOCK  768U //768:927 = $N data (both startup blocks)
+                                        //928:942 = UNUSED
+#define EEPROM_ADDR_BUILD_INFO     942U //942:1023 = Additional $I data (added to end of )
 
 // Define EEPROM address indexing for coordinate parameters
 #define N_COORDINATE_SYSTEM 6  // Number of supported work coordinate systems (from index 1)

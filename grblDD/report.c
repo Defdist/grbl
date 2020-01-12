@@ -44,7 +44,6 @@ static void report_util_axis_values(float *axis_value) {
   }
 }
 
-//JTS enabled this entire block
 static void report_util_setting_string(uint8_t n) {
   serial_write(' ');
   serial_write('(');
@@ -350,7 +349,7 @@ void report_execute_startup_message(char *line, uint8_t status_code)
   report_status_message(status_code);
 }
 
-// Prints build info line
+// Prints static portion of $I (build info).  Note additional EEPROM values stored ($I=) are also printed when $I sent. 
 void report_build_info(char *line)
 {
   printPgmString(PSTR("[grbl:" GRBL_VERSION " GG:" GG_CHASSIS  " PCB:" GG_PCB " VFD:" GG_VFD " YMD:" GG_VERSION_BUILD));
@@ -366,7 +365,6 @@ void report_echo_line_received(char *line)
   printPgmString(PSTR("[echo: ")); printString(line);
   report_util_feedback_line_feed();
 }
-
 
  // Prints real-time data. This function grabs a real-time snapshot of the stepper subprogram
  // and the actual location of the CNC machine. Users may change the following function to their
@@ -501,3 +499,20 @@ void report_realtime_status() //data returned by typing in '?'
   serial_write('>');
   report_util_line_feed();
 }
+
+//Prints entire EEPROM contents
+void report_read_EEPROM()
+{
+  for(uint16_t address=0; address<1024 ; address++)
+  {
+    if( (address % 16) == 0 ) { 
+      report_util_line_feed();
+      serial_write('x');
+      printInteger(address);
+    }
+    serial_write('\t');
+    printInteger(eeprom_get_char(address));
+    delay_ms(1);
+  }
+}
+

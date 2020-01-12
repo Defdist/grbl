@@ -54,7 +54,6 @@ void spindle_stop()
 {
     SPINDLE_TCCRA_REGISTER &= ~(1<<SPINDLE_COMB_BIT); // Disable PWM. Output voltage is zero.
 
-    //JTS2do
     //When the spindle is stopped, we also need to pull Hall_C sensor low.
     //This ensures that at lower PWM values - when PWM(328p)->LPF->ADC(VFD) result is close to zero - 
     //the spindle does not randomly start and stop.  This lets us safely use lower PWM values.
