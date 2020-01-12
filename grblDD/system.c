@@ -218,13 +218,13 @@ uint8_t system_execute_line(char *line)
           if ((line[2] != 'S') || (line[3] != 'T') || (line[4] != '=') || (line[6] != 0)) { return(STATUS_INVALID_STATEMENT); }
           switch (line[5]) {
             #ifdef ENABLE_RESTORE_EEPROM_DEFAULT_SETTINGS
-              case '$': settings_restore(SETTINGS_RESTORE_DEFAULTS); break;
+              case '$': settings_restore(SETTINGS_RESTORE_DEFAULTS); break; // '$$' settings (e.g. $20=1)
             #endif
             #ifdef ENABLE_RESTORE_EEPROM_CLEAR_PARAMETERS
-              case '#': settings_restore(SETTINGS_RESTORE_PARAMETERS); break;
+              case '#': settings_restore(SETTINGS_RESTORE_PARAMETERS); break; // Zeros WCO G54-G59 and G28/30 positions 
             #endif
             #ifdef ENABLE_RESTORE_EEPROM_WIPE_ALL
-              case '*': settings_restore(SETTINGS_RESTORE_ALL); break;
+              case '*': settings_restore(SETTINGS_RESTORE_ALL); break; // Does both of the above
             #endif
             default: return(STATUS_INVALID_STATEMENT);
           }
