@@ -161,11 +161,12 @@ uint8_t system_execute_line(char *line)
 
         case 'L' : // $L & $LS
           sys.state = STATE_HOMING; // Set system state variable
-          if ( line[2] == 0 ) { //$L = autolevel X table using offset from EEPROM
-            for (int ii=0 ; ii<2 ; ii++) { mc_autolevel_X(); } //run twice (1st gets table close to square)
-          } //$L = autolevel X table using offset from EEPROM
+          if ( line[2] == 0 ) { //$L = autolevel X table using previously stored calibration data
+            mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way
+            for (int ii=0 ; ii<3 ; ii++) { mc_autolevel_X(); } //algorithm converges on square
+          }
           else if( ((line[2] == 'S') && (line[3] == 0)) ) { //$LS
-            mc_X_is_level(); //$LS = determine existing 'squared' X offset and store in EEPROM
+            mc_X_is_level(); //$LS = store difference between X limit switches in EEPROM
           } else { //neither $L nor $LS entered
             sys.state = STATE_IDLE; //exit level mode
             return(STATUS_INVALID_STATEMENT);

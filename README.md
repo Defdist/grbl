@@ -40,7 +40,10 @@ Items listed below are changes to standard grbl 1v1h:
 
 -$HX, $HY, or $HZ homes single axis ($H still homes all axes).  This should make testing limit switch tab placement easier.  
 
--$E now reports entire EEPROM (mainly for debug)  
+-'$E' now reports entire EEPROM (mainly for debug)  
+
+-'$L' = autolevel X table using previously stored calibration data.  Uses calibration data stored by '$LS'  
+-'$LS' = store difference between X limit switches in EEPROM.  Run $LS after manually squaring machine.  
 
 -'$B=' stores RMA/manufacturing notes in memory.  Write whatever you want here.  Each successive call overwrites entire previous note.  
 --76 characters max (grbl reports error if longer).  Only numbers, letters, and period are stored (all other symbols removed, including spaces).  
