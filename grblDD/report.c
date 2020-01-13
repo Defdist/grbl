@@ -90,7 +90,7 @@ static void report_util_setting_string(uint8_t n) {
   report_util_comment_line_feed();
 }
 
-
+//JTS2do: might never be used
 static void report_util_int16_setting(uint16_t n, int val) { 
   report_util_setting_prefix(n); 
   printInteger(n);

@@ -107,6 +107,13 @@ void write_global_settings()
   memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL, (char*)&settings, sizeof(settings_t));
 }
 
+//JTS2do:
+// Method to store Grbl calibration into EEPROM
+void settings_write_calibration_data(uint8_t eeprom_address, int16_t cal_data)
+{
+  eeprom_put_char( (EEPROM_ADDR_CAL_DATA+eeprom_address+0U),(cal_data >> 8) );    //MSB
+  eeprom_put_char( (EEPROM_ADDR_CAL_DATA+eeprom_address+1U),(cal_data & 0x00FF)); //LSB
+}
 
 // Method to restore EEPROM-saved Grbl global settings back to defaults.
 void settings_restore(uint8_t restore_flag) {
@@ -188,6 +195,15 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
   return(true);
 }
 
+//reads calibration data from EEPROM.
+//two uint8_t bytes from EEPROM are converted to int16_t
+int16_t settings_read_calibration_data(uint8_t eeprom_offset)
+{
+  uint8_t msb = eeprom_get_char(EEPROM_ADDR_CAL_DATA+eeprom_offset+0); //read MSB from EEPROM
+  uint8_t lsb = eeprom_get_char(EEPROM_ADDR_CAL_DATA+eeprom_offset+1); //read LSB from EEPROM
+  int16_t cal_data = (msb<<8) | lsb; //convert two uint8_t bytes to int16_t
+  return cal_data;
+}
 
 // Reads Grbl global settings struct from EEPROM.
 uint8_t read_global_settings() {

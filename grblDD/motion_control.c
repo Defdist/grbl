@@ -206,14 +206,13 @@ void mc_autolevel_X()
   mc_homing_cycle(HOMING_CYCLE_X); //find X2 limit switch
 
   limits_disable(); //disable interrupts
-  int16_t delta_as_found = limits_find_trip_delta_X1X2();
-  printFloat_CoordValue(delta_as_found);  //JTS2do: debug only
-  int16_t delta_calibrated = -685; //JTS2do: read from EEPROM
-  printPgmString(PSTR(" delta ")); //JTS2do: debug only
-
+  int16_t delta_as_found = limits_find_trip_delta_X1X2(); //find difference between limit switches (X)
+  int16_t delta_calibrated = settings_read_calibration_data(ADDR_CAL_DATA_XDELTA); //read stored difference from EEPROM
+  
   float squaring_mm2move = ( (float)(delta_calibrated - delta_as_found) ) / settings.steps_per_mm[X_AXIS];
+  printPgmString(PSTR("[adjust ")); //JTS2do: debug only
   printFloat_CoordValue(squaring_mm2move);
-   printPgmString(PSTR(" 2move ")); //JTS2do: debug only
+  printPgmString(PSTR(" mm]\r\n")); //JTS2do: debug only
 
   protocol_execute_realtime(); // Check for reset and set system abort.
   if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
@@ -280,10 +279,13 @@ void mc_X_is_level()
 
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
-  printFloat_CoordValue(delta_as_found);  //JTS2do: debug only
+  printPgmString(PSTR("[Xdiff ")); //JTS2do: debug only
+  printInteger(delta_as_found);  //JTS2do: debug only
+  printPgmString(PSTR(" steps]\r\n")); //JTS2do: debug only
   limits_init(); //not really necessary because homing cycle immendiately disables them again.
 
-  //JTS2do: write delta to EEPROM
+  settings_write_calibration_data(ADDR_CAL_DATA_XDELTA, delta_as_found); //write delta to EEPROM
+
 
   mc_homing_cycle(HOMING_CYCLE_X); //cause we've ruined machine state
 

@@ -77,12 +77,12 @@
                                         //616:655 = UNUSED
 #define EEPROM_ADDR_DATES          656U //656:663 = Original Manufacturing Date, Last RMA Date (YYMMDD)
 #define EEPROM_ADDR_HW_VERSIONS    664U //664:671 = factory data, uint_16t (2 bytes each) (e.g. '3B') (room for 7 total )
-#define EEPROM_ADDR_CALIBRATION    672U //672:687 = $L storage area for autolevel (int16_t)
+#define EEPROM_ADDR_CAL_DATA       672U //672:687 = calibration data storage area. Up to QTY8 int16_t
 #define EEPROM_ADDR_STARTUP_BLOCK  688U //688:767 = $N0 startup block
                                         //768:847 = $N1 startup block
 #define EEPROM_ADDR_MANF_NOTES     848U //848:929 = $B manufacturing/RMA notes stored here
-                                        //930:942 = UNUSED
-#define EEPROM_ADDR_BUILD_INFO     942U //942:1023 = Additional $I data (added to end of )
+                                        //930:941 = UNUSED
+#define EEPROM_ADDR_BUILD_INFO     942U //942:1023 = Additional $I data (added to end of hardcoded $I info)
 
 // Define EEPROM address indexing for coordinate parameters
 #define N_COORDINATE_SYSTEM 6  // Number of supported work coordinate systems (from index 1)
@@ -97,6 +97,12 @@
 #define AXIS_SETTINGS_START_VAL  100 // NOTE: Reserving settings values >= 100 for axis settings. Up to 255.
 #define AXIS_SETTINGS_INCREMENT  10  // Must be greater than the number of axis settings
 
+//EEPROM_ADDR_CAL_DATA offsets
+#define ADDR_CAL_DATA_XDELTA 0
+//#define ADDR_CAL_DATA_xyz 2 //up to QTY8 parameters allowed, each jumps by +2.
+
+
+// Define calibration data 
 // Global persistent settings (Stored from byte EEPROM_ADDR_GLOBAL onwards)
 typedef struct { //values returned by $$ that $RST can restore
   // Axis settings
@@ -127,14 +133,6 @@ typedef struct { //values returned by $$ that $RST can restore
 } settings_t;
 extern settings_t settings;
 
-/*JTS2do: Finish defining new struct
-// Global persistent settings (Stored from byte EEPROM_ADDR_CALIBRATION onwards)
-typedef struct { //values returned by $$ that $RST cannot restore
-  // Original Manufacturing Date
-  uint8_t date_manufactured[DATE_CHAR_LENGTH]
-}
-*/
-
 // Initialize the configuration subsystem (load settings from EEPROM)
 void settings_init();
 
@@ -164,6 +162,9 @@ void settings_write_coord_data(uint8_t coord_select, float *coord_data);
 
 // Reads selected coordinate data from EEPROM
 uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data);
+
+//read selected calibration data from EEPROM
+int16_t settings_read_calibration_data(uint8_t eeprom_offset);
 
 // Returns the step pin mask according to Grbl's internal axis numbering (i.e. the physical pin location on the port)
 uint8_t get_step_pin_mask(uint8_t i);
