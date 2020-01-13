@@ -250,7 +250,7 @@ uint8_t system_execute_line(char *line)
           }
 
         default :  // $ or $N, followed by number.  Store settings [IDLE/ALARM]
-          if(!read_float(line, &char_counter, &parameter)) { return(STATUS_BAD_NUMBER_FORMAT); } //remaining line must be a number
+          if(!read_float(line, &char_counter, &parameter)) { return(STATUS_INVALID_STATEMENT); } //remaining line must be a number
           if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
           if (helper_var) { //$N, falling through form above = Store startup line
             // Prepare sending gcode block to gcode parser by shifting all characters
@@ -266,7 +266,7 @@ uint8_t system_execute_line(char *line)
               settings_store_startup_line(helper_var,line);
             }
           } else { // Store global setting ($ followed by a number)  
-            if(!read_float(line, &char_counter, &value)) { return(STATUS_BAD_NUMBER_FORMAT); }
+            if(!read_float(line, &char_counter, &value)) { return(STATUS_INVALID_STATEMENT); }
             if((line[char_counter] != 0) || (parameter > 255)) { return(STATUS_INVALID_STATEMENT); }
             return(settings_store_global_setting((uint8_t)parameter, value));
           }

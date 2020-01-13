@@ -30,11 +30,14 @@
 
 // Internal report utilities to reduce flash with repetitive tasks turned into functions.
 void report_util_setting_prefix(uint8_t n) { serial_write('$'); print_uint8_base10(n); serial_write('='); }
+static void report_util_message() { printPgmString(PSTR("[MSG:")); }
 static void report_util_line_feed() { printPgmString(PSTR("\r\n")); }
 static void report_util_feedback_line_feed() { serial_write(']'); report_util_line_feed(); }
 static void report_util_gcode_modes_G() { printPgmString(PSTR(" G")); }
 static void report_util_gcode_modes_M() { printPgmString(PSTR(" M")); }
-static void report_util_comment_line_feed() { serial_write(')'); report_util_line_feed(); } //JTS enabled
+//static void report_util_comment_line_feed() { serial_write(')'); report_util_line_feed(); }
+
+
 static void report_util_axis_values(float *axis_value) {
   uint8_t idx;
   for (idx=0; idx<N_AXIS; idx++) {
@@ -87,7 +90,8 @@ static void report_util_setting_string(uint8_t n) {
       }
       break;
   }
-  report_util_comment_line_feed();
+  serial_write( ')' );
+  report_util_line_feed();
 }
 
 //JTS2do: might never be used
@@ -109,6 +113,13 @@ static void report_util_float_setting(uint8_t n, float val, uint8_t n_decimal) {
 }
 
 
+//repetitive words as functions to reduce memory footprint
+static void report_send_word()          { printPgmString(PSTR("word")); }
+static void report_send_conflict()      { printPgmString(PSTR("conflict")); }
+static void report_send_axis()          { printPgmString(PSTR("axis")); }
+static void report_send_Gcode()         { printPgmString(PSTR("G-code ")); }         
+static void report_send_missing()       { printPgmString(PSTR("missing ")); } 
+static void report_send_Gcode_missing() { report_send_Gcode(); report_send_missing();} //4 bytes less than just "G-code missing"
 // Handles the primary confirmation protocol response for streaming interfaces and human-feedback.
 // For every incoming line, this method responds with an 'ok' for a successful command or an
 // 'error:'  to indicate some error event with the line or some critical system error during
@@ -120,29 +131,102 @@ void report_status_message(uint8_t status_code)
   switch(status_code) {
     case STATUS_OK: // STATUS_OK
       printPgmString(PSTR("ok\r\n")); break;
-    default:
+    
+    default:  //this entire default case uses 462 bytes of program space (~1.5%).  Written out it would take 552 bytes.
+      report_util_message();
+      switch(status_code) { //Functions used to reduce footprint
+        //unique text
+        case STATUS_INVALID_STATEMENT:                                 printPgmString(PSTR("$UNK"));        break;
+        case STATUS_NEGATIVE_VALUE:                                    printPgmString(PSTR("-#"));          break;
+        case STATUS_SETTING_READ_FAIL:                                 printPgmString(PSTR("MEMinit"));     break;
+        case STATUS_IDLE_ERROR:                                        printPgmString(PSTR("not idle"));    break;
+      //case STATUS_SPINDLE_OVERLOAD:                                  printPgmString(PSTR("")); break; //JTS2do
+
+        //"$H disabled"+____
+        case STATUS_SETTING_DISABLED:      //fall through --------------->
+        case STATUS_SOFT_LIMIT_ERROR:      //fall through --------------->
+        case STATUS_SYSTEM_GC_LOCK:                                    printPgmString(PSTR("$H disabled")); break;
+
+        //"2long"+____
+        case STATUS_OVERFLOW:              //fall through --------------->
+        case STATUS_LINE_LENGTH_EXCEEDED:                              printPgmString(PSTR("2long"));       break;
+
+        //"Jog"+____
+        case STATUS_TRAVEL_EXCEEDED:                                   printPgmString(PSTR("jog lim"));     break;
+        case STATUS_INVALID_JOG_COMMAND:                               printPgmString(PSTR("jog frmt"));    break;
+
+        //"G-code"+____
+        case STATUS_GCODE_AXIS_WORDS_EXIST:       report_send_Gcode(); report_send_axis();                  break;
+        case STATUS_GCODE_UNUSED_WORDS:           report_send_Gcode(); report_send_word();                  break;
+        case STATUS_GCODE_UNSUPPORTED_COMMAND:    report_send_Gcode(); printPgmString(PSTR("bad"));         break;
+        case STATUS_GCODE_UNDEFINED_FEED_RATE:    report_send_Gcode(); printPgmString(PSTR("F?"));          break;
+        case STATUS_GCODE_G43_DYNAMIC_AXIS_ERROR: report_send_Gcode(); printPgmString(PSTR("G43"));         break;
+        case STATUS_GCODE_UNSUPPORTED_COORD_SYS:  report_send_Gcode(); printPgmString(PSTR("G59"));         break;
+        case STATUS_GCODE_MODAL_GROUP_VIOLATION:  //fall through --------------->
+        case STATUS_GCODE_AXIS_COMMAND_CONFLICT:  //fall through --------------->              
+        case STATUS_GCODE_WORD_REPEATED:          report_send_Gcode(); report_send_conflict();              break;
+
+        //"G-code missing"+____
+        case STATUS_GCODE_G53_INVALID_MOTION_MODE:  report_send_Gcode_missing();  printPgmString(PSTR("G0|G1")); break;
+        case STATUS_GCODE_COMMAND_VALUE_NOT_INTEGER://fall through ---------------> 
+        case STATUS_BAD_NUMBER_FORMAT:              report_send_Gcode_missing();  printPgmString(PSTR("num"));   break;
+        case STATUS_GCODE_NO_AXIS_WORDS:            report_send_Gcode_missing();  report_send_axis();            break;
+        case STATUS_GCODE_INVALID_LINE_NUMBER:      report_send_Gcode_missing();  printPgmString(PSTR("Ln"));    break;
+        case STATUS_EXPECTED_COMMAND_LETTER:        report_send_Gcode_missing();  printPgmString(PSTR("Let"));   break;
+        case STATUS_GCODE_INVALID_TARGET:           report_send_Gcode_missing();  printPgmString(PSTR("targ"));  break;
+        case STATUS_GCODE_ARC_RADIUS_ERROR:         report_send_Gcode_missing();  printPgmString(PSTR("R"));     break;
+        case STATUS_GCODE_VALUE_WORD_MISSING:       //fall through ---------------> 
+        case STATUS_GCODE_NO_AXIS_WORDS_IN_PLANE:   //fall through ---------------> 
+        case STATUS_GCODE_NO_OFFSETS_IN_PLANE:      report_send_Gcode_missing();  report_send_word();            break;
+      
+        //errors we don't present text for
+        default: break;
+      }
+      report_util_feedback_line_feed();
+      
+printPgmString(PSTR(""));
       printPgmString(PSTR("error:"));
       print_uint8_base10(status_code);
       report_util_line_feed();
   }
 }
 
+
 // Prints alarm messages.
 void report_alarm_message(uint8_t alarm_code)
 {
-  if(alarm_code & EXEC_ALARM_HARD_LIMIT) // hard limit occurred
-  {
-    uint8_t lim_pin_state = limits_get_state(); //limit switch status 
-    if (bit_istrue(lim_pin_state,bit(X_AXIS))) { report_feedback_message(MESSAGE_LIM_X); }
-    if (bit_istrue(lim_pin_state,bit(Y_AXIS))) { report_feedback_message(MESSAGE_LIM_Y); }
-    if (bit_istrue(lim_pin_state,bit(Z_AXIS))) { report_feedback_message(MESSAGE_LIM_Z); }
+  report_util_message(); //"[MSG:"
+  switch(alarm_code) {
+    case EXEC_ALARM_HARD_LIMIT:
+      printPgmString(PSTR("Limit "));
+      uint8_t lim_pin_state = limits_get_state(); //limit switch status.  Multiple switches can be tripped.
+      if (bit_istrue(lim_pin_state,bit(X_AXIS))) { serial_write('X'); }
+      if (bit_istrue(lim_pin_state,bit(Y_AXIS))) { serial_write('Y'); }
+      if (bit_istrue(lim_pin_state,bit(Z_AXIS))) { serial_write('Z'); }
+      break;
+    case EXEC_ALARM_SOFT_LIMIT:
+      printPgmString(PSTR("Soft Lim"));
+      break;
+    case EXEC_ALARM_ABORT_CYCLE:
+      printPgmString(PSTR("reset"));
+      break;
+    case EXEC_ALARM_PROBE_FAIL_INITIAL:  //fall through
+    case EXEC_ALARM_PROBE_FAIL_CONTACT:
+      printPgmString(PSTR("probe"));
+      break;
+    case EXEC_ALARM_HOMING_FAIL_RESET:   //fall through 
+    case EXEC_ALARM_HOMING_FAIL_PULLOFF: //fall through 
+    case EXEC_ALARM_HOMING_FAIL_APPROACH:
+      printPgmString(PSTR("home")); 
+      break;
   }
+  report_util_feedback_line_feed(); //"]\r\n"
   printPgmString(PSTR("ALARM:"));
   print_uint8_base10(alarm_code);
-
   report_util_line_feed();
   delay_ms(500); // Force delay to ensure message clears serial write buffer.
 }
+
 
 // Prints feedback messages. This serves as a centralized method to provide additional
 // user feedback for things that are not of the status/alarm message protocol. These are
@@ -151,7 +235,7 @@ void report_alarm_message(uint8_t alarm_code)
 // is installed, the message number codes are less than zero.
 void report_feedback_message(uint8_t message_code)
 {
-  printPgmString(PSTR("[MSG:"));
+  report_util_message(); //"[MSG:"
   switch(message_code) {
     case MESSAGE_CRITICAL_EVENT:
       printPgmString(PSTR("Reset to cont")); break;
@@ -171,14 +255,8 @@ void report_feedback_message(uint8_t message_code)
       printPgmString(PSTR("Restore:spindle")); break;
     case MESSAGE_SLEEP_MODE:
       printPgmString(PSTR("Sleep")); break;
-    case MESSAGE_LIM_X: case MESSAGE_LIM_Y: case MESSAGE_LIM_Z:
-      printPgmString(PSTR("LIM TRIP "));
-      if      ( message_code == MESSAGE_LIM_X ) { serial_write('X'); }
-      else if ( message_code == MESSAGE_LIM_Y ) { serial_write('Y'); }
-      else    /*message_code == MESSAGE_LIM_Z*/ { serial_write('Z'); }
+    default: //shouldn't ever get here,
       break;
-    default:
-      serial_write('_'); //shouldn't ever get here, but just in case
   }
   report_util_feedback_line_feed();
 }
@@ -187,12 +265,23 @@ void report_feedback_message(uint8_t message_code)
 // Welcome message
 void report_init_message()
 {
-  printPgmString(PSTR("\r\nGrbl " GRBL_VERSION " ['$' for help]\r\n"));
+  printPgmString(PSTR("\r\nGrbl " GRBL_VERSION " [help:'$']\r\n"));
 }
 
-// Grbl help message
-void report_grbl_help() {
-  printPgmString(PSTR("[HLP:$$ $# $G $I $N $x=val $Nx=line $J=line $SLP $C $X $H ~ ! ? ctrl-x]\r\n"));    
+// Grbl help message '$'
+void report_grbl_help()
+{
+  printPgmString(PSTR("[ ? status")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$H home")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$X unlock")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$G G_state")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$I version")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$L levelX")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$C check")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$# offsets")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$$ settings")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$N startup")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$_=_ set")); report_util_feedback_line_feed();
 }
 
 
