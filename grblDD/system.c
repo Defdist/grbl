@@ -35,11 +35,13 @@ void system_init()
 // directly from the incoming serial data stream.
 ISR(PCINT1_vect)
 {
-  if(CONTROL_PIN & (1<<CONTROL_SPINDLE_OVERLOAD_BIT)) //true if spindle overload pin (A4) toggled to high
+  /*
+  if(CONTROL_PIN & (1<<CONTROL_SPINDLE_OVERLOAD_BIT)) //true if spindle overload pin (A4) toggled to high //JTS2do: This prevented probe from working right before trade show
   {
     //bit_true(sys_rt_exec_state, EXEC_CYCLE_START);} //JTS2do: add "SLOW DOWN SPINDLE OVERLOADED"
   }
   else //true if spindle overload pin (A4) toggled to low
+  */
   {     //also true if probe tripped.  Probe signal is noisy, so reading it (again) here is unreliable.
     //JTS2do add "SPINDLE NO LONGER OVERLOADED"   
     PCMSK1 = CONTROL_MASK; //JTS disable probe interrupt vector (to prevent probe interrupts when not probing).

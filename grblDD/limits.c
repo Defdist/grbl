@@ -111,7 +111,6 @@ ISR(LIMIT_INT_vect) //Limit pin change interrupt process.
     if (!(sys_rt_exec_alarm)) {
       mc_reset(); // Initiate system kill.
       system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
-
     }
   }
 }
