@@ -1,0 +1,284 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf610
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww16920\viewh28740\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\b\fs24 \cf0 An outsider's perspective on grbl:
+\b0 \
+This document primarily follows one line of serial text down the rabbit hole from start to finish.\
+We'll primarily focus on the homing command, but will outline the primary path for other commands, too.\
+\
+//Each character in the serial stream picked off the serial receive buffer via interrupt:\
+serial.c: 
+\b ISR(SERIAL_RX)
+\b0 \
+	-Picks off reset, realtime, ?!~, setting system_set_exec_state_flag(EXEX_xxxxx).\
+	-Other characters written to serial_rx_buffer[].\
+\
+serial.c: 
+\b serial_read()
+\b0 \
+	-returns first byte in the serial_rx_buffer.  Called by main program.\
+\
+main.c: 
+\b main()\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\b0 \cf0 	-creates: sys_probe_state/sys_rt_exec______ (all uint8_t).\
+	-creates: sys_position[] //realtime machine position in steps\
+	-creates: sys_probe_position[] //last probe position in steps\
+	-initializes grbl (_init)\
+	-calls protocol_main_loop() //main grbl loop\
+\
+protocol.c: 
+\b protocol_main_loop()\
+
+\b0 	-aborts back to main() if sys.abort, else:
+\b \
+
+\b0 	-formats character from serial_read() into line[], until \\n or \\r)\
+	-formats line[] into all CAPS, no comments, spaces, etc\
+	-Adds a '0' to the end of line.  Grbl uses this later to determine EOL\
+	-processes line and reports_status_message():\
+		-'0' is empty line, reports 'OK'\
+		-'$' is system command, calls 
+\b system_execute_line()\
+
+\b0 		-note: ISR(SERIAL_RX) has already picked off real-time (non-g-code) commands (see protocol_execute_realtime)\
+		-everything else is g-code, sent to 
+\b gc_execute_line()
+\b0  //gcode.c\
+\
+system.c: 
+\b system_execute_line
+\b0 (line) //called when first line character is '$'\
+	-'$' calls report_grbl_help()\
+	-'$J' calls gc_execute_line()\
+	-'$$' calls report_grbl_settings()\
+	-'$G' calls report_gcode_modes()\
+	-'$C' sets sys.state to STATE_CHECK_MODE\
+	-'$X' sets sys.state to STATE_IDLE\
+	(the following commands require idle and no alarms)\
+	-'$#' calls report_ngc_parameters()\
+	-'$H' sets sys.state to STATE_HOMING and calls 
+\b mc_homing_cycle
+\b0 (axis)
+\b \
+
+\b0 	-'$SLP' calls system_set_exec_state_flag(EXEC_SLEEP)\
+	-'$I' calls settings_read_build_info(line)\
+		if enabled (), settings_store_build_info(line) stores input to EEPROM\
+	-'$RST' calls settings_restore(SETTINGS_RESTORE_\
+	-'$N' calls report_startup_line\
+	-$number calls settings_store_global_setting(\
+	-returns 'OK'\
+\
+motion_control.c: 
+\b mc_homing_cycle
+\b0 (HOMING_CYCLE_ALL)\
+	-limits_disable()\
+	-calls 
+\b limits_go_home
+\b0 \
+	-protocol_execute_realtime()\
+	-gc_sync_position()\
+	-plan_sync_position()\
+	-limits_init()\
+\
+limits.c: 
+\b limits_go_home
+\b0 (cycle_mask) is the homing cycle\
+	-initializes plan_data. & pl_data\
+	-limits_get_state() reports X2/Y/Z Limit switch status\
+	-limits_X1_get_state() reports X1 limit switch status, which is only used for $L (autolevelX)\
+\
+...........................................................................................\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\b \cf0 EEPROM
+\b0 -specific locations:\
+settings.h:\
+	-EEPROM_ADDR_GLOBAL - physical memory addresses\
+\
+settings.c:\
+
+\b 	settings_restore
+\b0 () - restores OEM EEPROM values \
+
+\b 	settings_store_startup_line
+\b0 () - writes line to EEPROM (we're using N#2 for cal data)\
+
+\b 	report_build_info
+\b0 () - $I string\
+
+\b 	settings_store_global_setting
+\b0 () - stores $number=value\
+\
+report.c: report_grbl_settings() - called by $$\
+	calls report_util_uint8_setting(n) or\
+	calls report_util_float_setting(n)\
+		both print report_util_setting_prefix (e.g. "$20=")\
+		both print number (either print_uint8_base10 or float equiv)\
+		both print report_util_setting_string(n) (e.g. "rpmMax")\
+\
+Calibration data:\
+	settings_write_calibration_data\
+	settings_read_calibration_data\
+...........................................................................................\
+\
+
+\b STRUCTS:
+\b0 \
+settings.h\
+-global persistent settings (stored from byte EEPROM_ADDR_GLOBAL onwards)\
+
+\b settings.
+\b0  is type: settings_t (all elements are single numbers, except as noted)\
+	settings.steps_per_mm[]\
+	settings.max_rate[]\
+	settings.acceleration[]\
+	settings.max_travel\
+	settings.pulse_microseconds\
+	settings.step_invert_mask\
+	settings.dir_invert_mask\
+	settings.stepper_idle_lock_time\
+	settings.status_report_mask\
+	settings.junction_deviation\
+	settings.arc_tolerance\
+	settings.rpm_max\
+	settings.rpm_min\
+	settings.flags			//contains default boolean settings**\
+	settings.homing_dir_mask\
+	settings.homing_feed_rate\
+	settings.homing_seek_rate\
+	settings.homing_debounce_delay\
+	settings.homing_pulloff\
+		**report_inches, laser_mode, invert_st, hard/soft limits, invert probe/limits\
+\
+system.h: \
+-defines realtime command flags (bit masks)(EXEC_ STATE_ etc)\
+
+\b -sys.
+\b0  is type: system_t (all elements are single numbers, mostly uint8)\
+	sys.state   				//tracks grbl state\
+	sys.abort  				//forces exit back to main loop for reset\
+	sys.suspend 				//manages holds/cancels\
+	sys.soft_limit 			//tracks soft limit errors for state machine\
+	sys.step_control 			//governs step segment generator based on state\
+	sys.probe_succeeded  		//tracks if last probe succeeded\
+	sys.probe_interrupt_occurred  	//logs that a probe interrupt occurred\
+	sys.homing_axis_lock 		//locks axes when limits trip\
+	sys.f_override 			//feedrate override %\
+	sys.r_override 			//rapid override %\
+	sys.spindle_speed_ovr 		//spindle speed %\
+	sys.spindle_stop_ovr 		//tracks spindle stop override state\
+	sys.report_ovr_counter		//tracks when to add override data to reports\
+	sys.report_wco_counter		//tracks when to add WCO offset to reports\
+	sys.spindle_speed			//spindle rpm\
+\
+gcode.h:\
+
+\b gc_state.
+\b0  is type: parser_state_t (all elements are single numbers, except as noted)\
+	gc_state.modal is type: gc_modal_t (see next lines)\
+		gc_state.modal.motion 		G0/G1/G2/G38.2/G80\
+		gc_state.modal.feed_rate 		G93/G94\
+		gc_state.modal.units		G20/G21\
+		gc_state.modal.distance		G90/G91\
+		gc_state.modal.plane_select	G17/G18/G19\
+		gc_state.modal.tool_length		G43.1/G49\
+		gc_state.modal.coord_select	G54/G55/G56/G57/G58/G59\
+		gc_state.modal.program_flow	M0/M1/M2/M30\
+		gc_state.modal.spindle		M3/M4/M5\
+		gc_state.modal.override		M56\
+	gc_state.spindle_speed			rpm\
+	gc_state.feed_rate				mm/min\
+	gc_state.tool					tool# (not used)\
+	gc_state.line_number				last line number sent\
+	gc_state.position[]				where interpreter thinks tool is\
+	gc_state.coord_system[]			current WCS offset from absolute position\
+	gc_state.coord_offset[]			G92 offset\
+	gc_state.tool_length_offset			tool length (if enabled)\
+\
+
+\b gc_block. 
+\b0 is type parser_block_t (elements as noted)\
+	gc_block.non_modal_command	is type: uint8\
+	gc_block.modal			is type: gc_modal_t (see above)\
+	gc_block.values			is type: gc_values_t (see next lines)\
+		gc_block.values.f		feedrate\
+		gc_block.values.ijk		IJK axis arc offset\
+		gc_block.values.l		G10 or canned cycle parameters\
+		gc_block.values.n		line number\
+		gc_block.values.p		G10 or dwell parameters\
+		gc_block.values.r		arc radius\
+		gc_block.values.s		spindle speed\
+		gc_block.values.t		tool selection\
+		gc_block.values.xyz[]	XYZ translational axes\
+\
+planner.h:\
+
+\b block.\
+cur_block.	
+\b0 //the block executing at this moment
+\b \
+pl_block.\
+next.\
+current.
+\b0  are all type plan_block_t (all elements are single numbers, except as noted)\
+	current.steps[]			\
+	current.step_event_count		\
+	current.direction_bits		\
+	current.condition			\
+	current.line_number			\
+	current.entry_speed_sqr		\
+	current.acceleration			\
+	current.millimeters			\
+	current.max_junction_speed_sqr	\
+	current.rapid_rate			\
+	current.programmed_rate	\
+	current.spindle_speed		\
+\
+
+\b pl_data.
+\b0 	//planner data for motion blocks.  feedrate, rpm, line number, condition\
+
+\b plan_data.
+\b0  are type plan_line_data_t (all elements are single numbers) \
+	//used to pass new motions to the planner.\
+	plan_data.feed_rate		desired feed rate for G1; ignored if G0\
+	plan_data.spindle_speed	desired spindle rpm through line motion\
+	plan_data.condition		bitflag indicates planner conditions (PL_COND_)\
+	plan_data.line_number	desired line number to report when executing\
+\
+...........................................................................................\
+\
+As more memory is needed, remove "laser" implementation\
+\
+...........................................................................................\
+\
+//Watchdog code was removed entirely (previously used for limit switch debounce)\
+watchdog is available as a timer\
+  #ifdef ENABLE_SOFTWARE_DEBOUNCE\
+    MCUSR &= ~(1<<WDRF);\
+    WDTCSR |= (1<<WDCE) | (1<<WDE);\
+    WDTCSR = (1<<WDP0); // Set time-out at ~32msec.\
+  #endif\
+\
+  ISR(WDT_vect) // Watchdog timer ISR\
+  \{\
+    WDTCSR &= ~(1<<WDIE); // Disable watchdog timer. \
+    if (sys.state != STATE_ALARM) \{  // Ignore if already in alarm state. \
+      if (!(sys_rt_exec_alarm)) \{\
+        // Check limit pin state. \
+        if (limits_get_state()) \{\
+          mc_reset(); // Initiate system kill.\
+          system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event\
+        \}\
+      \}  \
+    \}\
+  \}\
+}
