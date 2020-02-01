@@ -29,7 +29,7 @@
 #define GG_CHASSIS "3A"
 #define GG_PCB "3B"
 #define GG_VFD "3A"
-#define GG_VERSION_BUILD "20200122 " //make sure there's a space at the end, so appended $I text is readable
+#define GG_VERSION_BUILD "20200201 " //make sure there's a space at the end, so appended $I text is readable
 
 // Define standard libraries used by Grbl.
 #include <avr/io.h>
