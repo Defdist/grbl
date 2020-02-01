@@ -46,7 +46,6 @@
 // used, if they are available per user setup. Also, extended ASCII codes (>127), which are never in
 // g-code programs, maybe selected for interface programs.
 // NOTE: If changed, manually update help message in report.c.
-
 #define CMD_RESET 0x18 // ctrl-x.
 #define CMD_STATUS_REPORT '?'
 #define CMD_CYCLE_START '~'
@@ -238,7 +237,7 @@
 // removed, capitalized letters, no comments) and is to be immediately executed by Grbl. Echoes will not be
 // sent upon a line buffer overflow, but should for all normal lines sent to Grbl. For example, if a user
 // sends the line 'g1 x1.032 y2.45 (test comment)', Grbl will echo back in the form '[echo: G1X1.032Y2.45]'.
-// NOTE: Only use this for debugging purposes!! When echoing, this takes up valuable resources and can effect
+// NOTE: Only use this for debugging purposes!! When echoing, this takes up valuable resources and can affect
 // performance. If absolutely needed for normal operation, the serial write buffer should be greatly increased
 // to help minimize transmission waiting within the serial write protocol.
 // #define REPORT_ECHO_LINE_RECEIVED // Default disabled. Uncomment to enable.
