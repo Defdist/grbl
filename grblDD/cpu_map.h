@@ -113,6 +113,7 @@
     #define SPINDLE_DIRECTION_DDR   DDRB
     #define SPINDLE_DIRECTION_PORT  PORTB
     #define SPINDLE_DIRECTION_BIT   5  // Uno Digital Pin 13 (NOTE: D13 can't be pulled-high input due to LED.)
+    #define SPINDLE_DIRECTION_MASK (1<<SPINDLE_DIRECTION_BIT)
 
     #define SPINDLE_HALL_DISABLE_DDR   DDRC
     #define SPINDLE_HALL_DISABLE_PIN   PINC

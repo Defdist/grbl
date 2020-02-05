@@ -31,6 +31,7 @@ void spindle_init()
   SPINDLE_TCCRA_REGISTER = SPINDLE_TCCRA_INIT_MASK; // Configure PWM output compare timer
   SPINDLE_TCCRB_REGISTER = SPINDLE_TCCRB_INIT_MASK;
   pwm_gradient = SPINDLE_PWM_RANGE/(settings.rpm_max-settings.rpm_min);
+  SPINDLE_DIRECTION_DDR |= SPINDLE_DIRECTION_MASK; // Configure spindle direction pin as output
 
   SPINDLE_HALL_DISABLE_PORT &= ~(SPINDLE_HALL_DISABLE_MASK); //Hall_C PORT value (never changes)
   spindle_stop();
