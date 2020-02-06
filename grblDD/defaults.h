@@ -38,9 +38,9 @@
   #define DEFAULT_X_ACCELERATION (250.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
   #define DEFAULT_Y_ACCELERATION (250.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
   #define DEFAULT_Z_ACCELERATION (250.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
-  #define DEFAULT_X_MAX_TRAVEL 87.0 // mm NOTE: Must be a positive value.
-  #define DEFAULT_Y_MAX_TRAVEL 242.0 // mm NOTE: Must be a positive value.
-  #define DEFAULT_Z_MAX_TRAVEL 79.0 // mm NOTE: Must be a positive value.
+  #define DEFAULT_X_MAX_TRAVEL 86.5 // mm NOTE: Must be a positive value. GG3 nom mech distance = 88 mm
+  #define DEFAULT_Y_MAX_TRAVEL 241.5 // mm NOTE: Must be a positive value. GG3 nom mech distance = 242.9 mm
+  #define DEFAULT_Z_MAX_TRAVEL 78.5 // mm NOTE: Must be a positive value. GG3 nom mech distance = 80 mm
   #define DEFAULT_SPINDLE_RPM_MAX 8000.0 // rpm
   #define DEFAULT_SPINDLE_RPM_MIN 0.0 // rpm
   #define DEFAULT_STEP_PULSE_MICROSECONDS 10
