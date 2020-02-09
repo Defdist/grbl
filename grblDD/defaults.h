@@ -32,12 +32,12 @@
   #define DEFAULT_X_STEPS_PER_MM 400.0
   #define DEFAULT_Y_STEPS_PER_MM 400.0
   #define DEFAULT_Z_STEPS_PER_MM 400.0
-  #define DEFAULT_X_MAX_RATE 2600.0 // mm/min
-  #define DEFAULT_Y_MAX_RATE 2600.0 // mm/min
-  #define DEFAULT_Z_MAX_RATE 2600.0 // mm/min
-  #define DEFAULT_X_ACCELERATION (250.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
-  #define DEFAULT_Y_ACCELERATION (250.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
-  #define DEFAULT_Z_ACCELERATION (250.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
+  #define DEFAULT_X_MAX_RATE 3100.0 // mm/min
+  #define DEFAULT_Y_MAX_RATE 3100.0 // mm/min
+  #define DEFAULT_Z_MAX_RATE 3100.0 // mm/min
+  #define DEFAULT_X_ACCELERATION (300.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
+  #define DEFAULT_Y_ACCELERATION (300.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
+  #define DEFAULT_Z_ACCELERATION (300.0*60*60) // 250*60*60 mm/min^2 = 250 mm/sec^2
   #define DEFAULT_X_MAX_TRAVEL 86.5 // mm NOTE: Must be a positive value. GG3 nom mech distance = 88 mm
   #define DEFAULT_Y_MAX_TRAVEL 241.5 // mm NOTE: Must be a positive value. GG3 nom mech distance = 242.9 mm
   #define DEFAULT_Z_MAX_TRAVEL 78.5 // mm NOTE: Must be a positive value. GG3 nom mech distance = 80 mm
@@ -60,7 +60,7 @@
   #define DEFAULT_HOMING_ENABLE 1
   #define DEFAULT_HOMING_DIR_MASK 1 // b0000001
   #define DEFAULT_HOMING_FINE_RATE 50.0 // mm/min
-  #define DEFAULT_HOMING_SEEK_RATE 2500.0 // mm/min
+  #define DEFAULT_HOMING_SEEK_RATE 2900.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 1 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 0.5 // mm
 #endif
