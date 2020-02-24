@@ -340,7 +340,7 @@ int16_t limits_find_trip_delta_X1X2()
   if (bit_istrue(settings.homing_dir_mask,bit(X_AXIS)) ) { target[X_AXIS] = DISTANCE_FIRST_PULLAWAY; } 
   else { target[X_AXIS] = (-DISTANCE_FIRST_PULLAWAY); }
   sys.homing_axis_lock = get_step_pin_mask(X_AXIS); //enable X axis motion
-  pl_data->feed_rate = settings.homing_seek_rate; //move away quickly  //JTS2do: change to seek once motion understood
+  pl_data->feed_rate = settings.homing_seek_rate; //move away quickly
   plan_buffer_line(target, pl_data); // Bypass mc_line(). Directly plan motion.
   sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute motion and clear existing flags.
   st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
@@ -399,7 +399,7 @@ int16_t limits_find_trip_delta_X1X2()
   if (bit_istrue(settings.homing_dir_mask,bit(X_AXIS)) ) { target[X_AXIS] = DISTANCE_FIRST_PULLAWAY; } 
   else { target[X_AXIS] = (-DISTANCE_FIRST_PULLAWAY); }
   sys.homing_axis_lock = get_step_pin_mask(X_AXIS); //enable X axis motion
-  pl_data->feed_rate = settings.homing_seek_rate; //move away quickly  //JTS2do: change to seek once motion understood
+  pl_data->feed_rate = settings.homing_seek_rate; //move away quickly
   plan_buffer_line(target, pl_data); // Bypass mc_line(). Directly plan motion.
   sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute motion and clear existing flags.
   st_prep_buffer(); // Prep and fill segment buffer from newly planned block.

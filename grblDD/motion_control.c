@@ -208,9 +208,9 @@ void mc_autolevel_X()
   int16_t delta_calibrated = settings_read_calibration_data(ADDR_CAL_DATA_XDELTA); //read stored difference from EEPROM
   
   float squaring_mm2move = ( (float)(delta_calibrated - delta_as_found) ) / settings.steps_per_mm[X_AXIS];
-  printPgmString(PSTR("[adjust ")); //JTS2do: debug only
+  printPgmString(PSTR("[adjust "));
   printFloat_CoordValue(squaring_mm2move);
-  printPgmString(PSTR(" mm]\r\n")); //JTS2do: debug only
+  printPgmString(PSTR(" mm]\r\n"));
 
   protocol_execute_realtime(); // Check for reset and set system abort.
   if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
@@ -218,50 +218,52 @@ void mc_autolevel_X()
   gc_sync_position();
   plan_sync_position();
   
-  stepper_X1_sleep();  // move only X2 during squaring.
- 
-  //*******************************************************************************
+  if( squaring_mm2move != 0.000 ) { //Plan motion only if we need to adjust
+    stepper_X1_sleep();  // move only X2 during squaring.
+   
+    //*******************************************************************************
 
-  float target[N_AXIS]; //target[3]
+    float target[N_AXIS];
 
-  // Initialize plan data struct for homing motion. Spindle is disabled.
-  plan_line_data_t plan_data;
-  plan_line_data_t *pl_data = &plan_data; //The address of plan_data is written to "*pl_data" 
-                                          //"pl_data" is a pointer to structure "plan_data"
-  memset(pl_data,0,sizeof(plan_line_data_t));
-  pl_data->condition = (PL_COND_FLAG_SYSTEM_MOTION|PL_COND_FLAG_NO_FEED_OVERRIDE);
-  #ifdef USE_LINE_NUMBERS
-    pl_data->line_number = HOMING_CYCLE_LINE_NUMBER;
-  #endif
-  //Ready to plan motion
+    // Initialize plan data struct for homing motion. Spindle is disabled.
+    plan_line_data_t plan_data;
+    plan_line_data_t *pl_data = &plan_data; //The address of plan_data is written to "*pl_data" 
+                                            //"pl_data" is a pointer to structure "plan_data"
+    memset(pl_data,0,sizeof(plan_line_data_t));
+    pl_data->condition = (PL_COND_FLAG_SYSTEM_MOTION|PL_COND_FLAG_NO_FEED_OVERRIDE);
+    #ifdef USE_LINE_NUMBERS
+      pl_data->line_number = HOMING_CYCLE_LINE_NUMBER;
+    #endif
+    //Ready to plan motion
 
-  // move X away from limit switches to prevent tripping during squaring routine
-  system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
-  sys_position[X_AXIS] = 0;
-  target[X_AXIS] = squaring_mm2move;  //The calibrated offset we're trying to restore  
-  sys.homing_axis_lock = get_step_pin_mask(X_AXIS); //enable X axis motion
-  pl_data->feed_rate = settings.homing_feed_rate; //move slowly
-  plan_buffer_line(target, pl_data); // Bypass mc_line(). Directly plan motion.
-  sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute motion and clear existing flags.
-  st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
-  st_wake_up(); // Enable steppers  
-  do { //move away from X limits until both limits aren't tripped
-    st_prep_buffer(); // Check and prep segment buffer
-    if (sys_rt_exec_state & (EXEC_RESET | EXEC_CYCLE_STOP)) { // true when pull-off motion completes.
-      system_clear_exec_state_flag(EXEC_CYCLE_STOP);  
-      break;
-    }
-  } while (1); //loop keeps running until motion stops (breaks out when done)
-  //at this point we've moved away from the limit switches
-  st_reset(); // Immediately force kill stepper interrupts and reset step segment buffer.
-  delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
+    // move X away from limit switches to prevent tripping during squaring routine
+    system_convert_array_steps_to_mpos(target,sys_position); //convert steps to mm on all three axes
+    sys_position[X_AXIS] = 0;
+    target[X_AXIS] = squaring_mm2move; //The calibrated offset we're trying to restore
+    sys.homing_axis_lock = get_step_pin_mask(X_AXIS); //enable X axis motion
+    pl_data->feed_rate = settings.homing_feed_rate; //move slowly
+    plan_buffer_line(target, pl_data); // Bypass mc_line(). Directly plan motion.
+    sys.step_control = STEP_CONTROL_EXECUTE_SYS_MOTION; // Set to execute motion and clear existing flags.
+    st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
+    st_wake_up(); // Enable steppers  
+    do { //move away from X limits until both limits aren't tripped
+      st_prep_buffer(); // Check and prep segment buffer
+      if (sys_rt_exec_state & (EXEC_RESET | EXEC_CYCLE_STOP)) { // true when pull-off motion completes.
+        system_clear_exec_state_flag(EXEC_CYCLE_STOP);  
+        break;
+      }
+    } while (1); //loop keeps running until motion stops (breaks out when done)
+    //at this point we've moved away from the limit switches
+    st_reset(); // Immediately force kill stepper interrupts and reset step segment buffer.
+    delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
 
-  //Put things back the way they were before all this uncontrolled motion started
-  sys.step_control = STEP_CONTROL_NORMAL_OP; // Return step control to normal operation.
+    //Put things back the way they were before all this uncontrolled motion started
+    sys.step_control = STEP_CONTROL_NORMAL_OP; // Return step control to normal operation.
 
-  //******************************************************************************* 
- 
-  stepper_X1_wake();
+    //******************************************************************************* 
+   
+    stepper_X1_wake();
+  }
 
   limits_init(); //enable interrupts; after above completes we don't go near them again
 

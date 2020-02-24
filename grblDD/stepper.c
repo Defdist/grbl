@@ -260,11 +260,17 @@ void st_set_power_level(char level)
     st_enable();
     STEPPERS_POWER_PORT &= ~(1<<STEPPERS_POWER_BIT); //set pin LOW, then;
     STEPPERS_POWER_DDR |= (1<<STEPPERS_POWER_BIT); // set pin to output
+    delay_us(20); //DRV8818 timing requirements: 20 us delay (max) required from enable to accepting first step
     break;   
   case 'M': //INPUT, Z = Normal Power (when steppers moving)
     st_enable();
-    STEPPERS_POWER_PORT &= ~(1<<STEPPERS_POWER_BIT);//set pin LOW, then;
-    STEPPERS_POWER_DDR &= ~(1<<STEPPERS_POWER_BIT);//set pin to input
+    if ( ( (STEPPERS_POWER_PORT & (1<<STEPPERS_POWER_BIT) ) == 0 ) &&
+         ( (STEPPERS_POWER_DDR  & (1<<STEPPERS_POWER_BIT) ) == 0 ) ) {return;} //already in Normal Power mode
+    else {
+      STEPPERS_POWER_PORT &= ~(1<<STEPPERS_POWER_BIT); //set pin LOW,
+      STEPPERS_POWER_DDR &= ~(1<<STEPPERS_POWER_BIT); //set pin to input (Z)
+      delay_us(20); //DRV8818 timing requirements: 20 us delay (max) required from enable to accepting first step
+    }
     break;
   default: {}//invalid entry
   }
@@ -273,8 +279,14 @@ void st_set_power_level(char level)
 //JTS added entire function
 void st_enable()
 {
-  if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); }
-  else { STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT); }
+  if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) {
+    if ( (STEPPERS_DISABLE_PORT & (1<<STEPPERS_DISABLE_BIT)) == 1 ) { return; } //steppers already enabled
+    else {STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); } //enable steppers
+  } else { 
+    if ( (STEPPERS_DISABLE_PORT & (1<<STEPPERS_DISABLE_BIT)) == 0 ) { return; } //steppers already enabled
+    else {STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT); } //enable steppers
+  delay_us(20); //20 us DRV8818 timing requirement.  Above code prevents this delay unless steppers just enabled
+  }
 }
 
 uint8_t st_is_power_level_HIGH()
@@ -568,10 +580,11 @@ void stepper_X1_sleep()
   STEPPERS_X1_SLEEP_PORT &= ~(STEPPERS_X1_SLEEP_MASK);
 }
 
-//wakes up stepper X1 (so it can move)
+//wakes up stepper X1 (so it can move).  Only used during auto-level
 void stepper_X1_wake()
 {
   STEPPERS_X1_SLEEP_PORT |= STEPPERS_X1_SLEEP_MASK; //set sleep pin high (awake)
+  delay_ms(1); //DRV8818 timing requirements: 1 ms delay (max) required from wakeup to accepting first step
 }
 
 // Called by planner_recalculate() when the executing block is updated by the new plan.
