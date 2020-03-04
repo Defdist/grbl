@@ -156,12 +156,27 @@ uint8_t system_execute_line(char *line)
           }
           break;
 
+        //JTSdebug
+        case 'D' : //$D = report table offset (from calibration value)
+          sys.state = STATE_HOMING;
+          mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way
+          mc_homing_cycle(HOMING_CYCLE_X);
+
+          limits_disable(); //disable interrupts
+          int16_t delta_as_found = limits_find_trip_delta_X1X2();
+          printPgmString(PSTR("[Xdiff ")); //JTS2do: debug only
+          printInteger(delta_as_found);  //JTS2do: debug only
+          printPgmString(PSTR(" steps]\r\n")); //JTS2do: debug only
+          limits_init(); //not really necessary because homing cycle immendiately disables them again.
+          sys.state = STATE_IDLE;
+          break;
+
         case 'E' : // $E = report entire EEPROM
           if ( line[2] == 0 ) { report_read_EEPROM(); }
           else { return(STATUS_INVALID_STATEMENT); }
           break;
 
-        case 'L' : // $L & $LS
+        case 'L' : // $L = auto-level X, $LS = store existing position as level
           sys.state = STATE_HOMING; // Set system state variable
           if ( line[2] == 0 ) { //$L = autolevel X table using previously stored calibration data
             mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way
