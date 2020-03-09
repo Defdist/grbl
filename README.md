@@ -123,8 +123,11 @@ List of Supported G-Codes:
   - Control Modes: G61
   - Program Flow: M0, M1, M2, M30*
   - Spindle Control: M3, M4, M5
+  - (DDcut only) Find midpoint between two WCS (see manual): M100
+  - (DDcut only) Verify absolute distance is less than x (see manual): M101
   - Stepper High power mode (next motion command only): M17
-  - Stepper Zero power mode (until next motion command): M18
+  - Stepper Zero power mode (turn steppers off until next motion command): M18
   - Valid Non-Command Words: F, I, J, K, L, N, P, R, S, T, X, Y, Z
+  - '|' (shift+\) now resets grbl (in addition to control+x, which is not a keyboard character).
 ```
 
