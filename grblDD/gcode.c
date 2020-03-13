@@ -158,7 +158,7 @@ uint8_t gc_execute_line(char *line)
               if (!((mantissa == 0) || (mantissa == 10))) { FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); }
               gc_block.non_modal_command += mantissa;
               mantissa = 0; // Set to zero to indicate valid non-integer G command.
-            }                
+            }
             break;
           case 0: case 1: case 2: case 3: case 38:
             // Check for G0/G1/G2/G3/G38 being called with G10/G28/G30/G92 on same block.
