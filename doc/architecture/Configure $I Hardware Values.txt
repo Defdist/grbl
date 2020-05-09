@@ -54,16 +54,20 @@ Bottom five LSBs = minor version, where:
 0bxxx00000 = 'A' (e.g. minor version A)
 0bxxx00001 = 'B'
 0bxxx00010 = 'C'
-0bxxx11110 = 'P'
+...
+0bxxx11001 = 'Z'
+... //Technically some non-letter values exists here (e.g. '[', ']', etc).
 0bxxx11111 = Minor version value not assigned.
 
 To combine these two values, logically OR the major+minor versions, then convert to decimal, and send that result.
 Example: You want to set the mechanical hardware version to '3B' (i.e. you want $I to return 'GG:3B').
 Using the above description, the major revision '3' is 0b011xxxxx,
                     whereas the minor revision  'B' is 0bxxx00001.
-             ORing these numbers together yields 0b01100001,
-                               which is equal to 97d.
+                   ORing these numbers together yields 0b01100001,
+                                     which is equal to 97d.
 Therefor, to set the mechanical hardware version to '3B', we send the command '$90=97' 
+
+Yeah, it sucks that we can't just send "$GG=3B"; that would have required a ton of additional work, and there almost certainly wasn't enough memory to do so anyway... when I started this feature I had 2 bytes of flash storage free...
 
 ---------------------------------------------------------
 
