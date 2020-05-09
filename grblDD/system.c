@@ -156,7 +156,7 @@ uint8_t system_execute_line(char *line)
           }
           break;
 
-        //JTSdebug
+        /*JTSdebug
         case 'D' : //$D = report table offset (from calibration value)
           sys.state = STATE_HOMING;
           mc_homing_cycle(HOMING_CYCLE_Z); //get Z out of the way
@@ -170,6 +170,7 @@ uint8_t system_execute_line(char *line)
           limits_init(); //not really necessary because homing cycle immendiately disables them again.
           sys.state = STATE_IDLE;
           break;
+		*/        
 
         case 'E' : // $E = report entire EEPROM
           if ( line[2] == 0 ) { report_read_EEPROM(); }

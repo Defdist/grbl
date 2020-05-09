@@ -94,12 +94,12 @@ static void report_util_setting_string(uint8_t n) {
   report_util_line_feed();
 }
 
-//JTS2do: might never be used
+/*
 static void report_util_int16_setting(uint16_t n, int val) { 
   report_util_setting_prefix(n); 
   printInteger(n);
   report_util_setting_string(n);
-}
+}*/
 
 static void report_util_uint8_setting(uint8_t n, int val) { 
   report_util_setting_prefix(n); 
@@ -462,8 +462,22 @@ void report_execute_startup_message(char *line, uint8_t status_code)
 // Prints static portion of $I (build info).  Note additional EEPROM values stored ($I=) are also printed when $I sent. 
 void report_build_info(char *line)
 {
-  printPgmString(PSTR("[grbl:" GRBL_VERSION " GG:" GG_CHASSIS  " PCB:" GG_PCB " VFD:" GG_VFD " YMD:" GG_VERSION_BUILD));
-  printString(line);
+  //report grbl version
+  printPgmString(PSTR("[grbl:" GRBL_VERSION " GG:")); 
+  
+  //report machine hardware revision ("GG:__") 
+  uint8_t revision_raw = settings_read_revision_data(EEPROM_ADDR_REVISION_GG);
+  print_uint8_base10( (revision_raw >> 5) & 0b00000111 ); //display QTY3 MSBs as major hardware version (e.g. GG:"3"_)
+  serial_write( (revision_raw & 0b00011111) + 65 );  //display QTY5 LSBs as minor hardware version (ASCII)(e.g. PCB:_"B")
+
+  //report circuit board revision ("PCB:__")
+  printPgmString(PSTR(" PCB:"));
+  revision_raw = settings_read_revision_data(EEPROM_ADDR_REVISION_PCB);
+  print_uint8_base10( (revision_raw >> 5) & 0b00000111 ); //display QTY3 MSBs as major PCB version (e.g. PCB:"3"_)
+  serial_write( (revision_raw & 0b00011111) + 65 );  //display QTY5 LSBs as minor PCB version (ASCII)(e.g. PCB:_"B")
+
+  //report firmware build date
+  printPgmString(PSTR(" YMD:" GRBL_DD_VERSION_BUILD));
   report_util_feedback_line_feed();
 }
 
@@ -624,7 +638,7 @@ void report_read_EEPROM()
     }
     serial_write('\t');
     printInteger(eeprom_get_char(address));
-    delay_ms(1);
+    //delay_ms(1);
   }
 }
 

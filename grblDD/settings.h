@@ -76,7 +76,7 @@
 #define EEPROM_ADDR_PARAMETERS     512U //512:615 = WCS offsets (G54/G55...G59 stored here
                                         //616:655 = UNUSED
 #define EEPROM_ADDR_DATES          656U //656:663 = Original Manufacturing Date, Last RMA Date (YYMMDD)
-#define EEPROM_ADDR_HW_VERSIONS    664U //664:671 = factory data, uint_16t (2 bytes each) (e.g. '3B') (room for 7 total )
+#define EEPROM_ADDR_REVISION       664U //664:671 = machine revision (shown in $I, e.g. '3B')
 #define EEPROM_ADDR_CAL_DATA       672U //672:687 = calibration data storage area. Up to QTY8 int16_t
 #define EEPROM_ADDR_STARTUP_BLOCK  688U //688:767 = $N0 startup block
                                         //768:847 = $N1 startup block
@@ -96,6 +96,12 @@
 #define AXIS_N_SETTINGS          4
 #define AXIS_SETTINGS_START_VAL  100 // NOTE: Reserving settings values >= 100 for axis settings. Up to 255.
 #define AXIS_SETTINGS_INCREMENT  10  // Must be greater than the number of axis settings
+
+//EEPROM data pertaining to GG versions (e.g. returned by $I)
+#define EEPROM_ADDR_REVISION_GG 0
+//address 1 reserved in case we split "GG" into major/minor versions
+#define EEPROM_ADDR_REVISION_PCB 2
+//address 3 reserved in case we split "PCB" " " "
 
 //EEPROM_ADDR_CAL_DATA offsets
 #define ADDR_CAL_DATA_XDELTA 0

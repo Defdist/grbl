@@ -107,12 +107,17 @@ void write_global_settings()
   memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL, (char*)&settings, sizeof(settings_t));
 }
 
-//JTS2do:
 // Method to store Grbl calibration into EEPROM
 void settings_write_calibration_data(uint8_t eeprom_address, int16_t cal_data)
 {
   eeprom_put_char( (EEPROM_ADDR_CAL_DATA+eeprom_address+0U),(cal_data >> 8) );    //MSB
   eeprom_put_char( (EEPROM_ADDR_CAL_DATA+eeprom_address+1U),(cal_data & 0x00FF)); //LSB
+}
+
+// Method to store machine version info into EEPROM
+void settings_write_revision_data(uint8_t eeprom_address, int8_t version_data)
+{
+  eeprom_put_char( (EEPROM_ADDR_REVISION+eeprom_address),(version_data) );
 }
 
 // Method to restore EEPROM-saved Grbl global settings back to defaults.
@@ -205,11 +210,16 @@ int16_t settings_read_calibration_data(uint8_t eeprom_offset)
   return cal_data;
 }
 
+uint8_t settings_read_revision_data(uint8_t eeprom_offset)
+{
+  return eeprom_get_char(EEPROM_ADDR_REVISION+eeprom_offset+0); //read MSB from EEPROM
+}
+
 // Reads Grbl global settings struct from EEPROM.
 uint8_t read_global_settings() {
   // Check version-byte of eeprom
   uint8_t version = eeprom_get_char(0); //EEPROM version is stored at block 0
-  if (version == SETTINGS_VERSION) { //JTS2do: see if new EEPROM version affects this function
+  if (version == SETTINGS_VERSION) {
     // Read settings-record and check checksum
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL, sizeof(settings_t)))) {
       return(false);
@@ -318,10 +328,8 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
       case 27: settings.homing_pulloff = value; break;
       case 30: settings.rpm_max = value; spindle_init(); break; // Re-initialize spindle rpm calibration
       case 31: settings.rpm_min = value; spindle_init(); break; // Re-initialize spindle rpm calibration
-      case 32:
-        if (int_value) { settings.flags |= BITFLAG_LASER_MODE; }
-        else { settings.flags &= ~BITFLAG_LASER_MODE; }
-        break;
+      case 90: settings_write_revision_data(EEPROM_ADDR_REVISION_GG,  value); break; //$I:GG
+      case 92: settings_write_revision_data(EEPROM_ADDR_REVISION_PCB, value); break; //$I:PCB
       default:
         return(STATUS_INVALID_STATEMENT);
     }

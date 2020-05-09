@@ -1,0 +1,85 @@
+How to set $I information
+
+---------------------------------------------------------
+
+Note to tinkerers:
+Grbl stores machine-specific hardware configuration information in non-volatile EEPROM.  This allows the firmware update tool to automatically determine which firmware is compatible with a specific Ghost Gunner machine.  This information is never modified (e.g. by firmware update, $RST=_, etc).  The only way to change these values is by following the instructions below.
+
+Unless specifically instructed to do so, we do not recommend changing these values.  Doing so could brick your Ghost Gunner electronics.  For this reason, this information isn't documented anywhere else... you won't win any special prizes by changing these values... at best you'll end up installing firmware that isn't compatible with your machine.  
+
+---------------------------------------------------------
+
+Background:
+DDcut's firmware update tool determines which firmware is compatible with a specific GG unit by sending "$I" and then parsing Grbl's response.  Example Grbl response:
+[grbl:1.1h GG:3A PCB:3B YMD:20200308]
+
+---------------------------------------------------------
+
+'$I' Values Explained:
+
+'grbl:_.__' is the base Grbl firmware version.   
+HOW TO MODIFY:  This value is hard-coded into each firmware version and cannot be changed at runtime; you must compile a new firmware build.
+
+'GG:' is the mechanical hardware version (e.g. 'GG:3B').
+The 1st digit is the major mechanical hardware version (e.g. a "Ghost Gunner 3" would return '3').
+The 2nd digit is the minor mechanical hardware version (a letter), which documents manufacturing/design changes that occur during the product lifecycle.  This value is used to determine which upgrades have been performed on a particular machine.  FYI: An RMA'd GG will always receive all required minor revisions during the repair process.
+HOW TO MODIFY:  Send "$90=HW_VERSION" (see "Determining HW_VERSION" below).
+
+'PCB:' is the electrical hardware version (e.g. 'PCB:3B').
+The 1st digit is the major PCB version.  Note: A GG1/GG2 can be upgraded with GG3's electronics (e.g. a 'GG:2A' machine can also have a 'PCB:3B' PCB).
+The 2nd digit is the minor PCB version (a letter), which documents design changes that occur during the product lifecycle.
+HOW TO MODIFY:  Send "$92=HW_VERSION" (see "Determining HW_VERSION" below).
+
+'VFD:' (No longer used).  The original GG3 firmware included this field to determine which VFD firmware was installed.  However, knowing which 'VFD' firmware version is installed isn't important, as DDcut's update tool always just loads the latest firmware version. 
+HOW TO MODIFY:  Send "$94=HW_VERSION" (see "Determining HW_VERSION" below).
+
+'YMD:' is the GrblDD firmware build date.
+HOW TO MODIFY:  This value is hard-coded into each firmware version and cannot be changed at runtime; you must compile a new firmware build.
+
+---------------------------------------------------------
+
+Determining HW_VERSION Values
+
+Due to Grbl's underlying single-byte storage structure - and the 328p's extremely limited memory space - the 'HW_VERSION' value stores both the major and minor version characters in a single byte of memory.  The memory format is:
+Top three MSBs = major version.  The 3-bit binary value is converted to a decimal number.
+Examples:
+0b010xxxxx = '2' (e.g. major version 2)
+0b011xxxxx = '3' (e.g. major version 3)
+0b100xxxxx = '4' (e.g. major version 4)
+...
+0b110xxxxx = '6' (e.g. major version 6)
+0b111xxxxx = Major version value not assigned.
+
+Bottom five LSBs = minor version, where:
+0bxxx00000 = 'A' (e.g. minor version A)
+0bxxx00001 = 'B'
+0bxxx00010 = 'C'
+0bxxx11110 = 'P'
+0bxxx11111 = Minor version value not assigned.
+
+To combine these two values, logically OR the major+minor versions, then convert to decimal, and send that result.
+Example: You want to set the mechanical hardware version to '3B' (i.e. you want $I to return 'GG:3B').
+Using the above description, the major revision '3' is 0b011xxxxx,
+                    whereas the minor revision  'B' is 0bxxx00001.
+             ORing these numbers together yields 0b01100001,
+                               which is equal to 97d.
+Therefor, to set the mechanical hardware version to '3B', we send the command '$90=97' 
+
+---------------------------------------------------------
+
+Summary Table of Selected HW_VERSION Values
+
+The following table summarizes this entire document.
+To set a 'GG:__' version, type:
+$90=96  (Set 'GG:3A')
+$90=97  (Set 'GG:3B')
+$90=98  (Set 'GG:3C')
+$90=99  (Set 'GG:3D')
+$90=100 (Set 'GG:3E')
+
+To set a 'PCB:__' version, type:
+$92=96  (Set 'PCB:3A')
+$92=97  (Set 'PCB:3B')
+$92=98  (Set 'PCB:3C')
+$92=99  (Set 'PCB:3D')
+$92=100 (Set 'PCB:3E')

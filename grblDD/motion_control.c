@@ -208,9 +208,10 @@ void mc_autolevel_X()
   int16_t delta_calibrated = settings_read_calibration_data(ADDR_CAL_DATA_XDELTA); //read stored difference from EEPROM
   
   float squaring_mm2move = ( (float)(delta_calibrated - delta_as_found) ) / settings.steps_per_mm[X_AXIS];
-  printPgmString(PSTR("[adjust "));
+  //printPgmString(PSTR("[adj "));
   printFloat_CoordValue(squaring_mm2move);
   printPgmString(PSTR(" mm]\r\n"));
+
 
   protocol_execute_realtime(); // Check for reset and set system abort.
   if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
@@ -279,9 +280,9 @@ void mc_X_is_level()
 
   limits_disable(); //disable interrupts
   int16_t delta_as_found = limits_find_trip_delta_X1X2();
-  printPgmString(PSTR("[Xdiff ")); //JTS2do: debug only
-  printInteger(delta_as_found);  //JTS2do: debug only
-  printPgmString(PSTR(" steps]\r\n")); //JTS2do: debug only
+  //printPgmString(PSTR("[Xdiff "));
+  //printInteger(delta_as_found);
+  //printPgmString(PSTR(" steps]\r\n"));
   limits_init(); //not really necessary because homing cycle immendiately disables them again.
 
   settings_write_calibration_data(ADDR_CAL_DATA_XDELTA, delta_as_found); //write delta to EEPROM
