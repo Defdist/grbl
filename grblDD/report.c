@@ -86,7 +86,7 @@ static void report_util_setting_string(uint8_t n) {
         case 0: printPgmString(PSTR(":stp/mm")); break;
         case 1: printPgmString(PSTR(":mm/min")); break;
         case 2: printPgmString(PSTR(":mm/s^2")); break;
-        case 3: printPgmString(PSTR(":mm max")); break;
+        case 3: printPgmString(PSTR(":mm")); break;
       }
       break;
   }
@@ -152,8 +152,8 @@ void report_status_message(uint8_t status_code)
         case STATUS_LINE_LENGTH_EXCEEDED:                              printPgmString(PSTR("2long"));       break;
 
         //"Jog"+____
-        case STATUS_TRAVEL_EXCEEDED:                                   printPgmString(PSTR("jog lim"));     break;
-        case STATUS_INVALID_JOG_COMMAND:                               printPgmString(PSTR("jog frmt"));    break;
+        case STATUS_TRAVEL_EXCEEDED:                                   printPgmString(PSTR("jogLIM"));     break;
+        case STATUS_INVALID_JOG_COMMAND:                               printPgmString(PSTR("jogINV"));    break;
 
         //"G-code"+____
         case STATUS_GCODE_AXIS_WORDS_EXIST:       report_send_Gcode(); report_send_axis();                  break;

@@ -209,6 +209,7 @@ void mc_autolevel_X()
   
   float squaring_mm2move = ( (float)(delta_calibrated - delta_as_found) ) / settings.steps_per_mm[X_AXIS];
   //printPgmString(PSTR("[adj "));
+  serial_write('[');
   printFloat_CoordValue(squaring_mm2move);
   printPgmString(PSTR(" mm]\r\n"));
 
