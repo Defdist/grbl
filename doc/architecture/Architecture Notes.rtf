@@ -1,8 +1,8 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf610
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\margl1440\margr1440\vieww16920\viewh28740\viewkind0
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\margl1440\margr1440\vieww16920\viewh21000\viewkind0
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 
 \f0\b\fs24 \cf0 An outsider's perspective on grbl:
@@ -24,9 +24,8 @@ serial.c:
 \
 main.c: 
 \b main()\
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 
-\b0 \cf0 	-creates: sys_probe_state/sys_rt_exec______ (all uint8_t).\
+\b0 	-creates: sys_probe_state/sys_rt_exec______ (all uint8_t).\
 	-creates: sys_position[] //realtime machine position in steps\
 	-creates: sys_probe_position[] //last probe position in steps\
 	-initializes grbl (_init)\
@@ -49,7 +48,8 @@ protocol.c:
 \b0 		-note: ISR(SERIAL_RX) has already picked off real-time (non-g-code) commands (see protocol_execute_realtime)\
 		-everything else is g-code, sent to 
 \b gc_execute_line()
-\b0  //gcode.c\
+\b0  //in gcode.c.  This function is a \expnd0\expndtw0\kerning0
+switch statement that sequentially parses each g-code parameter (Letter+Number).  Once the line is fully consumed, it is executed in a well-documented order (see gcode.c).\kerning1\expnd0\expndtw0 \
 \
 system.c: 
 \b system_execute_line
@@ -96,9 +96,8 @@ limits.c:
 \
 ...........................................................................................\
 \
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 
-\b \cf0 EEPROM
+\b EEPROM
 \b0 -specific locations:\
 settings.h:\
 	-EEPROM_ADDR_GLOBAL - physical memory addresses\
@@ -253,10 +252,6 @@ current.
 	plan_data.spindle_speed	desired spindle rpm through line motion\
 	plan_data.condition		bitflag indicates planner conditions (PL_COND_)\
 	plan_data.line_number	desired line number to report when executing\
-\
-...........................................................................................\
-\
-As more memory is needed, remove "laser" implementation\
 \
 ...........................................................................................\
 \
