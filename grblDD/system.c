@@ -220,6 +220,7 @@ uint8_t system_execute_line(char *line)
             settings_read_build_info(line);  //when finished, 'line' contains $I build info
             report_build_info(line);
           #ifdef ENABLE_BUILD_INFO_WRITE_COMMAND
+            //Adds user-entered text (after "$I=") to the hardcoded text already returned by "$I".
             //this command will overwrite other EEPROM data if longer than 78 characters (length isn't checked).
             //82 characters available, but last four indicate EOL (x0AB0, where'xAB' is last two char in string).
             } else { // Store build info line [IDLE/ALARM]
