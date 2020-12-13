@@ -220,19 +220,19 @@ void protocol_exec_rt_system()
     // loop until system reset/abort.
     sys.state = STATE_ALARM; // Set system alarm state
     report_alarm_message(rt_exec);
-    // Halt everything upon a critical event flag. Currently hard and soft limits flag this.
-    if ((rt_exec == EXEC_ALARM_HARD_LIMIT) || (rt_exec == EXEC_ALARM_SOFT_LIMIT)) {
-      report_feedback_message(MESSAGE_CRITICAL_EVENT);
+    
+    // Halt everything
+    report_feedback_message(MESSAGE_CRITICAL_EVENT);
 
-      system_clear_exec_state_flag(EXEC_RESET); // Disable any existing reset
-      do {  // hard limit switch loops here forever, until reset
+    system_clear_exec_state_flag(EXEC_RESET); // Disable any existing reset
+    do {  // hard limit switch loops here forever, until reset
         // Block everything, except reset and status reports, until user issues reset or power
         // cycles. Hard limits typically occur while unattended or not paying attention. Gives
         // the user and a GUI time to do what is needed before resetting, like killing the
         // incoming stream. The same could be said about soft limits. While the position is not
         // lost, continued streaming could cause a serious crash if by chance it gets executed.
-      } while ( bit_isfalse(sys_rt_exec_state,EXEC_RESET) );
-    }
+    } while ( bit_isfalse(sys_rt_exec_state,EXEC_RESET) );
+
     system_clear_exec_alarm(); // Clear alarm
   }
 
