@@ -274,13 +274,12 @@ void report_grbl_help()
   printPgmString(PSTR("[ ? status")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$H home")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$X unlock")); report_util_feedback_line_feed();
-  printPgmString(PSTR("[$G G_state")); report_util_feedback_line_feed();
+  printPgmString(PSTR("[$G state")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$I version")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$L levelX")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$C check")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$# offsets")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$$ settings")); report_util_feedback_line_feed();
-  printPgmString(PSTR("[$N startup")); report_util_feedback_line_feed();
   printPgmString(PSTR("[$_=_ set")); report_util_feedback_line_feed();
 }
 

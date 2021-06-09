@@ -284,7 +284,7 @@ void mc_X_is_level()
   //printPgmString(PSTR("[Xdiff "));
   //printInteger(delta_as_found);
   //printPgmString(PSTR(" steps]\r\n"));
-  limits_init(); //not really necessary because homing cycle immendiately disables them again.
+  limits_init(); //not necessary because homing cycle immendiately disables them again.
 
   settings_write_calibration_data(ADDR_CAL_DATA_XDELTA, delta_as_found); //write delta to EEPROM
 
