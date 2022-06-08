@@ -31,7 +31,7 @@
 
 // Define bit flag masks for the boolean settings in settings.flag.
 #define BIT_REPORT_INCHES      0
-#define BIT_LASER_MODE         1
+#define BIT_UNUSED             1
 #define BIT_INVERT_ST_ENABLE   2
 #define BIT_HARD_LIMIT_ENABLE  3
 #define BIT_HOMING_ENABLE      4
@@ -40,7 +40,7 @@
 #define BIT_INVERT_PROBE_PIN   7
 
 #define BITFLAG_REPORT_INCHES      bit(BIT_REPORT_INCHES)
-#define BITFLAG_LASER_MODE         bit(BIT_LASER_MODE)
+#define BITFLAG_UNUSED             bit(BIT_UNUSED)
 #define BITFLAG_INVERT_ST_ENABLE   bit(BIT_INVERT_ST_ENABLE)
 #define BITFLAG_HARD_LIMIT_ENABLE  bit(BIT_HARD_LIMIT_ENABLE)
 #define BITFLAG_HOMING_ENABLE      bit(BIT_HOMING_ENABLE)
@@ -180,6 +180,8 @@ uint8_t get_direction_pin_mask(uint8_t i);
 
 // Returns the limit pin mask according to Grbl's internal axis numbering
 uint8_t get_limit_pin_mask(uint8_t i);
+
+void settings_write_calibration_data(uint8_t eeprom_address, int16_t cal_data);
 
 
 #endif

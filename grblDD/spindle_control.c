@@ -25,7 +25,7 @@ static float pwm_gradient; // Precalulated value to speed up rpm to PWM conversi
 
 void spindle_init()
 {
-  // Configure variable spindle PWM and enable pin, if requried. On the Uno, PWM and enable are
+  // Configure variable spindle PWM and enable pin, if required. On the Uno, PWM and enable are
   // combined unless configured otherwise.
   SPINDLE_PWM_DDR |= SPINDLE_PWM_MASK; // Configure as PWM output pin.
   SPINDLE_TCCRA_REGISTER = SPINDLE_TCCRA_INIT_MASK; // Configure PWM output compare timer
@@ -120,13 +120,7 @@ void spindle_set_state(uint8_t state, float rpm)
     if (state == SPINDLE_ENABLE_CW) {SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);} 
     else {SPINDLE_DIRECTION_PORT |= (1<<SPINDLE_DIRECTION_BIT);}
 
-    // NOTE: Assumes all calls to this function is when Grbl is not moving or must remain off.
-    if (settings.flags & BITFLAG_LASER_MODE)
-    { 
-      if (state == SPINDLE_ENABLE_CCW) { rpm = 0.0; } // TODO: May need to be rpm_min*(100/MAX_SPINDLE_SPEED_OVERRIDE);
-    }
-  spindle_set_speed(spindle_compute_pwm_value(rpm));
-
+    spindle_set_speed(spindle_compute_pwm_value(rpm));
   }
   
   sys.report_ovr_counter = 0; // Set to report change immediately

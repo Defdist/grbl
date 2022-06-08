@@ -64,4 +64,6 @@ void st_update_plan_block_parameters();
 // Called by realtime status reporting if realtime rate reporting is enabled in config.h.
 float st_get_realtime_rate();
 
+void st_enable(void);
+
 #endif

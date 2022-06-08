@@ -277,7 +277,7 @@ void st_set_power_level(char level)
 }
 
 //JTS added entire function
-void st_enable()
+void st_enable(void)
 {
   if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) {
     if ( (STEPPERS_DISABLE_PORT & (1<<STEPPERS_DISABLE_BIT)) == 1 ) { return; } //steppers already enabled
@@ -678,13 +678,6 @@ void st_prep_buffer()
         // Setup laser mode variables. PWM rate adjusted motions will always complete a motion with the
         // spindle off. 
         st_prep_block->is_pwm_rate_adjusted = false;
-        if (settings.flags & BITFLAG_LASER_MODE) {
-          if (pl_block->condition & PL_COND_FLAG_SPINDLE_CCW) { 
-            // Pre-compute inverse programmed rate to speed up PWM updating per step segment.
-            prep.inv_rate = 1.0/pl_block->programmed_rate;
-            st_prep_block->is_pwm_rate_adjusted = true; 
-          }
-        }
       }
 
 			/* ---------------------------------------------------------------------------------

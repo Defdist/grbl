@@ -73,7 +73,6 @@ static void report_util_setting_string(uint8_t n) {
     case 27: printPgmString(PSTR("homePulloff")); break;
     case 30: printPgmString(PSTR("rpmMax")); break;
     case 31: printPgmString(PSTR("rpmMin")); break;
-    //case 32: printPgmString(PSTR("laser")); break;
     default:
       n -= AXIS_SETTINGS_START_VAL;
       uint8_t idx = 0;

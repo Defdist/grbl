@@ -847,37 +847,6 @@ uint8_t gc_execute_line(char *line)
     if (status == STATUS_OK) { memcpy(gc_state.position, gc_block.values.xyz, sizeof(gc_block.values.xyz)); }
     return(status);
   }
-  
-  // If in laser mode, setup laser power based on current and past parser conditions.
-  if (bit_istrue(settings.flags,BITFLAG_LASER_MODE)) {
-    if ( !((gc_block.modal.motion == MOTION_MODE_LINEAR) || (gc_block.modal.motion == MOTION_MODE_CW_ARC) 
-        || (gc_block.modal.motion == MOTION_MODE_CCW_ARC)) ) {
-      gc_parser_flags |= GC_PARSER_LASER_DISABLE;
-    }
-
-    // Any motion mode with axis words is allowed to be passed from a spindle speed update. 
-    // NOTE: G1 and G0 without axis words sets axis_command to none. G28/30 are intentionally omitted.
-    // TODO: Check sync conditions for M3 enabled motions that don't enter the planner. (zero length).
-    if (axis_words && (axis_command == AXIS_COMMAND_MOTION_MODE)) { 
-      gc_parser_flags |= GC_PARSER_LASER_ISMOTION; 
-    } else {
-      // M3 constant power laser requires planner syncs to update the laser when changing between
-      // a G1/2/3 motion mode state and vice versa when there is no motion in the line.
-      if (gc_state.modal.spindle == SPINDLE_ENABLE_CW) {
-        if ((gc_state.modal.motion == MOTION_MODE_LINEAR) || (gc_state.modal.motion == MOTION_MODE_CW_ARC) 
-            || (gc_state.modal.motion == MOTION_MODE_CCW_ARC)) {
-          if (bit_istrue(gc_parser_flags,GC_PARSER_LASER_DISABLE)) { 
-            gc_parser_flags |= GC_PARSER_LASER_FORCE_SYNC; // Change from G1/2/3 motion mode.
-          }
-        } else {
-          // When changing to a G1 motion mode without axis words from a non-G1/2/3 motion mode.
-          if (bit_isfalse(gc_parser_flags,GC_PARSER_LASER_DISABLE)) { 
-            gc_parser_flags |= GC_PARSER_LASER_FORCE_SYNC;
-          }
-        } 
-      }
-    }
-  }
 
   // [0. Non-specific/common error-checks and miscellaneous setup]:
   // NOTE: If no line number is present, the value is zero.
