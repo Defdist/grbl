@@ -22,9 +22,9 @@
 #define grbl_h
 
 // Grbl versioning system
-#define GRBL_VERSION "1.2a"
+#define GRBL_VERSION "1.1g"
 #define GRBL_VERSION_BUILD "20190825" // Raw Grbl build date (YYYYMMDD).  "Raw" is straight from github.com/gnea/grbl  
-#define GRBL_DD_VERSION_BUILD "20220608" //Ghost Gunner specific build date (YYYYMMDD).
+#define GRBL_DD_VERSION_BUILD "20220609" //Ghost Gunner specific build date (YYYYMMDD).
 
 // Define standard libraries used by Grbl.
 #include <avr/io.h>

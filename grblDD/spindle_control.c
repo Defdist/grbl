@@ -53,6 +53,10 @@ uint8_t spindle_get_state()
 // Called by spindle_init(), spindle_set_speed(), spindle_set_state(), and mc_reset().
 void spindle_stop()
 {
+    //create interrupt on 32M1
+    SPINDLE_DIRECTION_PORT |=  (1<<SPINDLE_DIRECTION_BIT); //set direction pin high
+    SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT); //set direction pin low
+
     SPINDLE_TCCRA_REGISTER &= ~(1<<SPINDLE_COMB_BIT); // Disable PWM. Output voltage is zero.
 
     //When the spindle is stopped, we also need to pull Hall_C sensor low.
@@ -111,12 +115,16 @@ void spindle_set_state(uint8_t state, float rpm)
 {
   if (sys.abort) { return; } // Block during abort.
 
+  //create interrupt on 32M1
+  SPINDLE_DIRECTION_PORT |=  (1<<SPINDLE_DIRECTION_BIT); //set direction pin high
+  SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT); //set direction pin low
+
   if (state == SPINDLE_DISABLE) { // Halt or set spindle direction and rpm.
     sys.spindle_speed = 0.0;
     spindle_stop();
   } 
   else
-  {   
+  { 
     if (state == SPINDLE_ENABLE_CW) {SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);} 
     else {SPINDLE_DIRECTION_PORT |= (1<<SPINDLE_DIRECTION_BIT);}
 
