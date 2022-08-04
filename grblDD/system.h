@@ -97,9 +97,6 @@
 #define STEP_CONTROL_EXECUTE_SYS_MOTION   bit(2)
 #define STEP_CONTROL_UPDATE_SPINDLE_PWM   bit(3)
 
-// Define control pin index for Grbl internal use. Pin maps may change, but these values don't.
-#define CONTROL_PIN_INDEX_SPINDLE_OVERLOAD bit(0)  //JTS BLDC overload signal from 32M1 (Uno A4)
-
 // Define spindle stop override control states.
 #define SPINDLE_STOP_OVR_DISABLED       0  // Must be zero.
 #define SPINDLE_STOP_OVR_ENABLED        bit(0)
@@ -116,7 +113,8 @@ typedef struct {
   uint8_t soft_limit;          // Tracks soft limit errors for the state machine. (boolean)
   uint8_t step_control;        // Governs the step segment generator depending on system state.
   uint8_t probe_succeeded;     // Tracks if last probing cycle was successful.
-  uint8_t probe_interrupt_occurred; //JTS added logs when the probe interrupts
+  uint8_t probe_interrupt_occurred; //JTS added //logs when the probe interrupts.
+  uint8_t report_ok_mode;      //JTS added //stores how to display 'ok' response message (e.g. 'ok', '0k', '1k', etc)
   uint8_t homing_axis_lock;    // Locks axes when limits engage. Used as an axis motion mask in the stepper ISR.
   uint8_t f_override;          // Feed rate override value in percent
   uint8_t r_override;          // Rapids override value in percent
@@ -137,9 +135,6 @@ extern volatile uint8_t sys_rt_exec_state;   // Global realtime executor bitflag
 extern volatile uint8_t sys_rt_exec_alarm;   // Global realtime executor bitflag variable for setting various alarms.
 extern volatile uint8_t sys_rt_exec_motion_override; // Global realtime executor bitflag variable for motion-based overrides.
 extern volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bitflag variable for spindle overrides.
-
-// Initialize the serial protocol
-void system_init();
 
 // Executes an internal system command, defined as a string starting with a '$'
 uint8_t system_execute_line(char *line);

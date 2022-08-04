@@ -113,10 +113,11 @@ static void report_util_float_setting(uint8_t n, float val, uint8_t n_decimal) {
 
 
 //repetitive words as functions to reduce memory footprint
-static void report_send_word()          { printPgmString(PSTR("word")); }
+static void report_send_ok_ending()     { printPgmString(PSTR("k\r\n"));    }
+static void report_send_word()          { printPgmString(PSTR("word"));     }
 static void report_send_conflict()      { printPgmString(PSTR("conflict")); }
-static void report_send_axis()          { printPgmString(PSTR("axis")); }
-static void report_send_Gcode()         { printPgmString(PSTR("G-code ")); }         
+static void report_send_axis()          { printPgmString(PSTR("axis"));     }
+static void report_send_Gcode()         { printPgmString(PSTR("G-code "));  }         
 static void report_send_missing()       { printPgmString(PSTR("missing ")); } 
 static void report_send_Gcode_missing() { report_send_Gcode(); report_send_missing();} //4 bytes less than just "G-code missing"
 // Handles the primary confirmation protocol response for streaming interfaces and human-feedback.
@@ -129,7 +130,19 @@ void report_status_message(uint8_t status_code)
 {
   switch(status_code) {
     case STATUS_OK: // STATUS_OK
-      printPgmString(PSTR("ok\r\n")); break;
+      if(sys.report_ok_mode == REPORT_RESPONSE_OK) { serial_write('o'); } //print standard 'ok message'
+      else //sys.report_ok_mode == REPORT_RESPONSE_0K_1K_2K_3K //M105 mode
+      {
+        switch( spindle_get_actual_RPM_status() )
+        {
+          case SPINDLE_ACTUALRPM_WITHIN_0000TO0999_GOALRPM: serial_write('0'); break;
+          case SPINDLE_ACTUALRPM_WITHIN_1000TO1999_GOALRPM: serial_write('1'); break;
+          case SPINDLE_ACTUALRPM_WITHIN_2000TO2999_GOALRPM: serial_write('2'); break;
+          case SPINDLE_ACTUALRPM_BEYOND_3000_GOALRPM:       serial_write('3'); break;
+        }
+      }
+      report_send_ok_ending();
+      break;
     
     default:  //this entire default case uses 462 bytes of program space (~1.5%).  Written out it would take 552 bytes.
       report_util_message();
@@ -139,7 +152,6 @@ void report_status_message(uint8_t status_code)
         case STATUS_NEGATIVE_VALUE:                                    printPgmString(PSTR("-#"));          break;
         case STATUS_SETTING_READ_FAIL:                                 printPgmString(PSTR("MEMinit"));     break;
         case STATUS_IDLE_ERROR:                                        printPgmString(PSTR("not idle"));    break;
-      //case STATUS_SPINDLE_OVERLOAD:                                  printPgmString(PSTR("")); break; //JTS2do
 
         //"$H disabled"+____
         case STATUS_SETTING_DISABLED:      //fall through --------------->

@@ -252,7 +252,6 @@ uint8_t gc_execute_line(char *line)
               default: gc_block.modal.program_flow = int_value; // Program end and reset
             }
             break;
-
           case 3: case 4: case 5:
             word_bit = MODAL_GROUP_M7;
             switch(int_value) {
@@ -261,16 +260,21 @@ uint8_t gc_execute_line(char *line)
               case 5: gc_block.modal.spindle = SPINDLE_DISABLE; break;
             }
             break;
-          
           case 8: case 9:
                //JTS GG doesn't have coolant.
             break;
-
-          case 17: //JTS enabled stepper high power mode (until next idle).  USE SPARINGLY!!!
+          case 17: //M17 //JTS enabled stepper high power mode (until next idle).  USE SPARINGLY!!!
             st_set_power_level('H');
             break;
-          case 18: //JTS disable stepper motors
+          case 18: //M18 //JTS disable stepper motors
             st_set_power_level('0');
+            break;
+          case 105: //M105 //JTS enter "spindle RPM feedback" mode: 'ok' replaced by '0k','1k','2k', or '3k', based on actual spindle RPM:
+            //'0k': Spindle actualRPM within 0000:0999 of goalRPM
+            //'1k': Spindle actualRPM within 1000:1999 of goalRPM
+            //'2k': Spindle actualRPM within 2000:2999 of goalRPM
+            //'3k': Spindle actualRPM beyond 3000      of goalRPM
+            sys.report_ok_mode = REPORT_RESPONSE_0K_1K_2K_3K;
             break;
 
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]

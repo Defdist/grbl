@@ -24,10 +24,23 @@
 // Inverts the probe pin state depending on user settings and probing cycle mode.
 uint8_t probe_invert_mask;
 
+//JTS Pin change interrupt for probe
+// ISR needs to run as fast as possible.
+// Sets only the realtime command execute variable; the main program executes these when
+// its ready. This works exactly like the character-based realtime commands when picked off
+// directly from the incoming serial data stream.
+ISR(PCINT1_vect)
+{
+  //Probe signal is noisy, so reading it (again) here is unreliable.
+  PCMSK1 &= ~(PROBE_MASK); //JTS disable probe interrupt vector (to prevent probe interrupts when not probing).
+  sys.probe_interrupt_occurred = 1; //JTS log that probe occurred
+}
 
 // Probe pin initialization routine.
 void probe_init()
 {
+  PCICR |= (1 << PCIE1);   // Enable probe pin change interrupt byte //actual probe pin (A5) interrupt enabled when probing
+
   PROBE_DDR &= ~(PROBE_MASK); // Configure as input pins
   #ifdef DISABLE_PROBE_PIN_PULL_UP
     PROBE_PORT &= ~(PROBE_MASK); // Normal low operation. Requires external pull-down.

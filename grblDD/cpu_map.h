@@ -62,8 +62,6 @@
     #define STEPPERS_X1_SLEEP_BIT  0 // Uno Pin A0
     #define STEPPERS_X1_SLEEP_MASK (1<<STEPPERS_X1_SLEEP_BIT)
 
-
-
     //JTS Define Stepper Power Level (Uno pin A1)
     #define STEPPERS_POWER_DDR  DDRC
     #define STEPPERS_POWER_PIN  PINC
@@ -81,21 +79,25 @@
     #define Z_LIMIT_BIT	     4  // Uno Digital Pin 12
     #define LIMIT_MASK     ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
 
+    #define LIMIT_INT        PCIE0  // Pin change interrupt enable pin
+    #define LIMIT_INT_vect   PCINT0_vect
+    #define LIMIT_PCMSK      PCMSK0 // Pin change interrupt register
+
+    // Performs two separate tasks:
+    //When spindle not rotating, detects X Table's second limit switch status during auto-level ('$L') // This limit switch doesn't cause interrupts
+    //When spindle     rotating, used to detect spindle actualRPM status (along with SPINDLE_RPM_STATUS pin)
     #define LIMIT_X1_DDR     DDRC   
     #define LIMIT_X1_PIN     PINC
     #define LIMIT_X1_PORT    PORTC
     #define LIMIT_X1_BIT     2 // Uno Pin A2
     #define LIMIT_X1_MASK    (1<<LIMIT_X1_BIT)
 
-    #define LIMIT_INT        PCIE0  // Pin change interrupt enable pin
-    #define LIMIT_INT_vect   PCINT0_vect
-    #define LIMIT_PCMSK      PCMSK0 // Pin change interrupt register
-
-    // JTS Define spindle overload pin (from 32M1).  Previously HW input pins (cycle start, reset, feed hold).
-    // NOTE: All CONTROLs pins must be on the same port and not on a port with other (JTS interrupt) input pins (limits).
-    #define CONTROL_PIN       PINC
-    #define CONTROL_SPINDLE_OVERLOAD_BIT 4 //JTS Uno Analog Pin A4
-    #define CONTROL_MASK      (1<<CONTROL_SPINDLE_OVERLOAD_BIT)
+    //JTS Define spindle RPM status pin (from 32M1)
+    #define SPINDLE_RPM_STATUS_DDR  DDRC
+    #define SPINDLE_RPM_STATUS_PIN  PINC
+    #define SPINDLE_RPM_STATUS_PORT PORTC
+    #define SPINDLE_RPM_STATUS_BIT  4 //Uno Pin A4
+    #define SPINDLE_RPM_STATUS_MASK (1<<SPINDLE_RPM_STATUS_BIT)
     
     // Define probe switch input pin.
     #define PROBE_DDR       DDRC
@@ -108,6 +110,12 @@
     #define SPINDLE_ENABLE_DDR    DDRB
     #define SPINDLE_ENABLE_PORT   PORTB
     #define SPINDLE_ENABLE_BIT    3  // Uno Digital Pin 11
+
+    // NOTE: On the 328p, these must be the same as the SPINDLE_ENABLE settings.
+    #define SPINDLE_PWM_DDR   DDRB
+    #define SPINDLE_PWM_PORT  PORTB
+    #define SPINDLE_PWM_BIT   3    // Uno Digital Pin 11
+    #define SPINDLE_PWM_MASK  (1<<SPINDLE_PWM_BIT)
 
     // Define spindle direction pin
     #define SPINDLE_DIRECTION_DDR   DDRB
@@ -140,12 +148,6 @@
     #define SPINDLE_TCCRB_INIT_MASK   (1<<CS21)               // 1/8 prescaler -> 7.8kHz (Used in v0.9) //JTS enabled
     // #define SPINDLE_TCCRB_INIT_MASK   ((1<<CS21) | (1<<CS20)) // 1/32 prescaler -> 1.96kHz
     //#define SPINDLE_TCCRB_INIT_MASK      (1<<CS22)               // 1/64 prescaler -> 0.98kHz
-
-    // NOTE: On the 328p, these must be the same as the SPINDLE_ENABLE settings.
-    #define SPINDLE_PWM_DDR   DDRB
-    #define SPINDLE_PWM_PORT  PORTB
-    #define SPINDLE_PWM_BIT   3    // Uno Digital Pin 11
-    #define SPINDLE_PWM_MASK  (1<<SPINDLE_PWM_BIT)
 
   #endif
 

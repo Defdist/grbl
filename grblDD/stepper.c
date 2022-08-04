@@ -289,6 +289,7 @@ void st_enable(void)
   }
 }
 
+//JTS added entire function
 uint8_t st_is_power_level_HIGH()
 {
   if ( (STEPPERS_POWER_PORT & (1<<STEPPERS_POWER_BIT)) && (STEPPERS_POWER_DDR & (1<<STEPPERS_POWER_BIT)) ) {return 1;}

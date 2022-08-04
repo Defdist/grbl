@@ -34,6 +34,9 @@ void spindle_init()
   SPINDLE_DIRECTION_DDR |= SPINDLE_DIRECTION_MASK; // Configure spindle direction pin as output
 
   SPINDLE_HALL_DISABLE_PORT &= ~(SPINDLE_HALL_DISABLE_MASK); //Hall_C PORT value (never changes)
+
+  SPINDLE_RPM_STATUS_DDR &= ~(SPINDLE_RPM_STATUS_MASK); //set as input
+
   spindle_stop();
 }
 
@@ -144,3 +147,19 @@ void spindle_sync(uint8_t state, float rpm)
   spindle_set_state(state,rpm);
 }
 
+
+// Determine spindle actualRPM status
+// The spindle CPU (32M1) sets two pins to indicate actual RPM status:
+  //'0k': Spindle actualRPM within 0000:0999 of goalRPM //unoPinA2_low  //unoPinA4_low
+  //'1k': Spindle actualRPM within 1000:1999 of goalRPM //unoPinA2_low  //unoPinA4_high
+  //'2k': Spindle actualRPM within 2000:2999 of goalRPM //unoPinA2_high //unoPinA4_low
+  //'3k': Spindle actualRPM beyond 3000      of goalRPM //unoPinA2_high //unoPinA4_high
+uint8_t spindle_get_actual_RPM_status(void)
+{
+  uint8_t actualRPM_pinStates = 0;
+
+  if(LIMIT_X1_PIN & LIMIT_X1_MASK)                     { actualRPM_pinStates  = (1<<SPINDLE_ACTUAL_RPM_BIT1); } //set bit1 if pin A2 is high
+  if(SPINDLE_RPM_STATUS_PIN & SPINDLE_RPM_STATUS_MASK) { actualRPM_pinStates |= (1<<SPINDLE_ACTUAL_RPM_BIT0); } //set bit0 if pin A4 is high
+
+  return actualRPM_pinStates;
+}

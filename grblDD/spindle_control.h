@@ -29,6 +29,13 @@
   #define SPINDLE_STATE_CW       bit(0)
   #define SPINDLE_STATE_CCW      bit(1)
 
+  #define SPINDLE_ACTUAL_RPM_BIT1 1
+  #define SPINDLE_ACTUAL_RPM_BIT0 0
+
+  #define SPINDLE_ACTUALRPM_WITHIN_0000TO0999_GOALRPM 0 //unoPinA2_low  //unoPinA4_low
+  #define SPINDLE_ACTUALRPM_WITHIN_1000TO1999_GOALRPM 1 //unoPinA2_low  //unoPinA4_high
+  #define SPINDLE_ACTUALRPM_WITHIN_2000TO2999_GOALRPM 2 //unoPinA2_high //unoPinA4_low
+  #define SPINDLE_ACTUALRPM_BEYOND_3000_GOALRPM       3 //unoPinA2_high //unoPinA4_high
 
   // Initializes spindle pins and hardware PWM, if enabled.
   void spindle_init();
@@ -54,5 +61,7 @@
 
   // Stop and start spindle routines. Called by all spindle routines and stepper ISR.
   void spindle_stop();
+
+  uint8_t spindle_get_actual_RPM_status(void);
 
 #endif

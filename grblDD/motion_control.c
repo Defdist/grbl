@@ -357,7 +357,7 @@ uint8_t mc_probe_cycle(float *target, plan_line_data_t *pl_data, uint8_t parser_
   }
 
   //JTS enable probe interrupt pin mask
-  PCMSK1 = (CONTROL_MASK | PROBE_MASK); //JTS After probe trips, ISR disables probe interrupt
+  PCMSK1 |= PROBE_MASK; //JTS After probe trips, ISR disables probe interrupt
   sys.probe_interrupt_occurred = 0; //JTS Initialize value
 
   // Setup and queue probing motion. Auto cycle-start should not start the cycle.

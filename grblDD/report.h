@@ -34,7 +34,7 @@
 #define STATUS_SOFT_LIMIT_ERROR 10
 #define STATUS_OVERFLOW 11
 #define STATUS_MAX_STEP_RATE_EXCEEDED 12
-//#define STATUS_ 13 //JTS2do repurpose this for STATUS_SPINDLE_OVERLOAD
+//#define STATUS_ 13 //JTS unused
 #define STATUS_LINE_LENGTH_EXCEEDED 14
 #define STATUS_TRAVEL_EXCEEDED 15
 #define STATUS_INVALID_JOG_COMMAND 16
@@ -76,11 +76,15 @@
 #define MESSAGE_ALARM_UNLOCK 3
 #define MESSAGE_ENABLED 4
 #define MESSAGE_DISABLED 5
-//#define MESSAGE_ 6 //JTS2do repurpose this for STATUS_SPINDLE_OVERLOAD
+//#define MESSAGE_ 6 //JTS unused
 #define MESSAGE_PROGRAM_END 8
 #define MESSAGE_RESTORE_DEFAULTS 9
 #define MESSAGE_SPINDLE_RESTORE 10
 #define MESSAGE_SLEEP_MODE 11
+
+// Define Grbl 'ok' response modes
+#define REPORT_RESPONSE_OK 0 //default mode //grbl replies 'ok'
+#define REPORT_RESPONSE_0K_1K_2K_3K 1 //spindle RPM feedback mode //grbl replies '0k'/'1k'/'2k'/'3k' based on actualRPM versus goalRPM (search 'M105')
 
 // Prints system status messages.
 void report_status_message(uint8_t status_code);

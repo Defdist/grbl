@@ -20,35 +20,6 @@
 
 #include "grbl.h"
 
-
-void system_init()
-{
-  DDRC &= ~(CONTROL_MASK); // Configure as input pins
-  PCMSK1 |= CONTROL_MASK;  // Enable specific pins of the Pin Change Interrupt
-  PCICR |= (1 << PCIE1);   // Enable Pin Change Interrupt
-}
-
-//JTS Pin change interrupt for probe and spindle overlaod
-// ISR needs to be as fast as possible.
-// Sets only the realtime command execute variable; the main program executes these when
-// its ready. This works exactly like the character-based realtime commands when picked off
-// directly from the incoming serial data stream.
-ISR(PCINT1_vect)
-{
-  /*
-  if(CONTROL_PIN & (1<<CONTROL_SPINDLE_OVERLOAD_BIT)) //true if spindle overload pin (A4) toggled to high //JTS2do: This prevented probe from working right before trade show
-  {
-    //bit_true(sys_rt_exec_state, EXEC_CYCLE_START);} //JTS2do: add "SLOW DOWN SPINDLE OVERLOADED"
-  }
-  else //true if spindle overload pin (A4) toggled to low
-  */
-  {     //also true if probe tripped.  Probe signal is noisy, so reading it (again) here is unreliable.
-    //JTS2do add "SPINDLE NO LONGER OVERLOADED"   
-    PCMSK1 = CONTROL_MASK; //JTS disable probe interrupt vector (to prevent probe interrupts when not probing).
-    sys.probe_interrupt_occurred = 1; //JTS log that probe occurred
-  }
-}
-
 // Executes user startup script, if stored.
 void system_execute_startup(char *line)
 {
@@ -167,7 +138,7 @@ uint8_t system_execute_line(char *line)
           printPgmString(PSTR("[Xdiff ")); //JTS2do: debug only
           printInteger(delta_as_found);  //JTS2do: debug only
           printPgmString(PSTR(" steps]\r\n")); //JTS2do: debug only
-          limits_init(); //not really necessary because homing cycle immendiately disables them again.
+          limits_init(); //not really necessary because homing cycle immediately disables them again.
           sys.state = STATE_IDLE;
           break;
 		*/        
